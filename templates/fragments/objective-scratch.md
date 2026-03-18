@@ -1,5 +1,5 @@
 Write an optimized {{LANGUAGE_NAME}} kernel in `solution/{{LANGUAGE}}/` for maximum speedup on {{GPU_NAME}}.
-This is a **{{OPERATOR_DESCRIPTION}}** operator.
+This is a **{{OPERATOR_DESCRIPTION}}**.
 
 **Starting point:** {{STARTING_POINT}}
 

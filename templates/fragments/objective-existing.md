@@ -1,5 +1,5 @@
 Optimize the {{LANGUAGE_NAME}} kernel in `solution/{{LANGUAGE}}/` for maximum speedup on {{GPU_NAME}}.
-This is a **{{OPERATOR_DESCRIPTION}}** operator.
+This is a **{{OPERATOR_DESCRIPTION}}**.
 
 The starting point is an **already partially-optimized {{LANGUAGE_NAME}} kernel**. Analyze it,
 identify bottlenecks, and optimize for maximum speedup while preserving correctness.

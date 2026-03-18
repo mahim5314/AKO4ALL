@@ -13,16 +13,16 @@ from pathlib import Path
 
 
 def first_sentence(text: str) -> str:
-    """Extract the first sentence from a description."""
+    """Extract the first sentence from a description (without trailing period)."""
     for end in (".  ", ".\n", ". "):
         idx = text.find(end)
         if idx != -1:
-            return text[: idx + 1]
+            return text[:idx]
     # If no sentence boundary found, return up to first period
     idx = text.find(".")
     if idx != -1:
-        return text[: idx + 1]
-    return text
+        return text[:idx]
+    return text.rstrip(".")
 
 
 def format_shape(name: str, tensor_info: dict, axes: dict) -> str:
