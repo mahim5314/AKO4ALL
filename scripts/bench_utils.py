@@ -108,11 +108,16 @@ def save_baseline(results: dict):
 
 def inject_baseline(results: dict, baseline: dict) -> dict:
     """Replace reference_latency_ms=0.0 with cached values and recompute speedup_factor."""
+    if "workloads" not in baseline:
+        print("Warning: baseline.json missing 'workloads' key, skipping baseline injection.", file=sys.stderr)
+        return results
     cached = baseline["workloads"]
     for def_name, traces in results.items():
         for uuid, result in traces.items():
             if uuid in cached:
-                ref_ms = cached[uuid]["reference_latency_ms"]
+                ref_ms = cached[uuid].get("reference_latency_ms")
+                if ref_ms is None:
+                    continue
                 result["reference_latency_ms"] = ref_ms
                 sol_ms = result.get("latency_ms")
                 if sol_ms and sol_ms > 0:
@@ -215,6 +220,7 @@ def run_and_report(
         backend: Backend name for trajectory metadata.
     """
     baseline = None if force_baseline else load_baseline()
+    baseline_was_cached = baseline is not None
 
     if baseline is None:
         # Phase 1: Benchmark the reference implementation to measure its latency
@@ -239,7 +245,7 @@ def run_and_report(
     score = compute_score(results)
     print_results(results, score)
     save_trajectory(results, solution, score, label,
-                    baseline_cached=True, backend=backend)
+                    baseline_cached=baseline_was_cached, backend=backend)
 
 
 # ---------------------------------------------------------------------------

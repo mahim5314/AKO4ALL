@@ -306,4 +306,4 @@ See **Installation** section above for detailed setup instructions.
 
 **Note on Environment Name**: The benchmark scripts (`scripts/bench.sh`, `scripts/bench_modal.sh`) hardcode `conda run -n fi-bench`. If you use a different environment name, either:
 - Rename your environment to `fi-bench`, or
-- Modify `scripts/bench.sh` line 20 and `scripts/bench_modal.sh` line 16 in spawned child environments
+- Modify the `conda run -n fi-bench` line in `scripts/bench.sh` in spawned child environments

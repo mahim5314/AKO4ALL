@@ -35,6 +35,19 @@ def pack_solution(output_path: Path = None) -> Path:
     """Pack solution files into a Solution JSON."""
     config = load_config()
 
+    # Validate required config sections and keys
+    for section in ("solution", "build"):
+        if section not in config:
+            raise ValueError(f"config.toml missing required section: [{section}]")
+    required_solution_keys = ("name", "definition", "author")
+    for key in required_solution_keys:
+        if key not in config["solution"]:
+            raise ValueError(f"config.toml [solution] missing required key: '{key}'")
+    required_build_keys = ("language", "entry_point")
+    for key in required_build_keys:
+        if key not in config["build"]:
+            raise ValueError(f"config.toml [build] missing required key: '{key}'")
+
     solution_config = config["solution"]
     build_config = config["build"]
 
