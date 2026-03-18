@@ -67,6 +67,15 @@ python setup.py --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 -
 python setup.py --operator my_op --prompt ./my_task.md --info ./my_hints.md
 ```
 
+### Existing Mode Behavior
+
+When using `--mode existing --kernel /path/to/your_kernel.py`:
+
+- **Python-like languages** (python/triton/tilelang): Your kernel is renamed to `kernel.py` to match the entry point
+- **Compiled languages** (cuda/cpp): Your kernel keeps its original filename (e.g., `best_cuda_kernel.cu`)
+
+If a `config.toml` exists in the same directory as your kernel, it will be copied to the child environment (useful for pre-configuring `destination_passing_style`).
+
 ## How It Works
 
 1. `python setup.py --operator <name>` discovers the operator definition and workloads from the dataset
@@ -84,10 +93,13 @@ kernel-opt-agent-run-NNN/
 ├── .gitignore
 ├── docs/
 │   ├── definition.json         # Operator definition
-│   └── workloads.jsonl         # Benchmark workloads
+│   ├── workloads.jsonl         # Benchmark workloads
+│   └── reference.py            # PyTorch reference (scratch mode, compiled languages only)
 ├── solution/
-│   └── triton/                 # or python/, cuda/, cpp/, tilelang/ based on --language
-│       └── kernel.py           # The kernel to optimize (cuda: kernel.cu + binding.py)
+│   ├── triton/kernel.py        # Triton/Python/TileLang (entry: kernel.py::run)
+│   └── cuda/                   # CUDA (entry: binding.py::kernel)
+│       ├── kernel.cu           #   - CUDA kernel implementation
+│       └── binding.py          #   - Python bindings (TVM FFI)
 ├── scripts/
 │   ├── bench_utils.py          # Shared benchmark utilities
 │   ├── bench.sh                # Benchmark script
@@ -98,6 +110,24 @@ kernel-opt-agent-run-NNN/
 └── .claude/
     └── settings.local.json     # Permission fallback
 ```
+
+### Entry Points by Language
+
+The entry point depends on the kernel language:
+
+- **Python, Triton, TileLang**: `solution/{language}/kernel.py::run`
+  - Agent edits a single Python file
+  - Entry function is `run(...)`
+
+- **CUDA**: `solution/cuda/binding.py::kernel`
+  - Agent edits `kernel.cu` (CUDA kernel code) and `binding.py` (Python bindings using TVM FFI)
+  - Entry function is `kernel(...)` in binding.py
+
+- **C++**: `solution/cpp/binding.py::kernel`
+  - Agent edits C++ source files and `binding.py` (Python bindings using TVM FFI)
+  - Entry function is `kernel(...)` in binding.py
+
+**Note for compiled languages (CUDA, C++):** In scratch mode, the PyTorch reference implementation from `definition.json` is saved to `docs/reference.py`. Use this to understand the computation semantics before implementing the compiled kernel.
 
 ## Customization
 
@@ -147,7 +177,7 @@ The `reference` serves as the mathematical specification and correctness baselin
 1. Execute it as Python to generate reference outputs for correctness checks
 2. Profile it to measure baseline performance (when `profile_baseline=True`)
 
-❌ **Do NOT** use CUDA/C++/Triton code in the `reference` field — the framework expects Python and will fail to compile/execute it.
+⚠️ **Critical Constraint**: The `reference` must be executable Python/PyTorch code. FlashInfer-Bench hardcodes reference execution as `language=PYTHON, entry_point=main.py::run`. Using CUDA/C++/Triton code in the `reference` field will cause compilation errors and benchmark failures.
 
 ## Benchmark Output
 

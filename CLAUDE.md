@@ -44,12 +44,38 @@ kernel-opt-agent/
     └── pack_solution.py               # Pack kernel for evaluation
 ```
 
+## Language Categories
+
+The system distinguishes two language categories that behave differently:
+
+### Python-like Languages (python, triton, tilelang)
+- **Entry point**: `kernel.py::run`
+- **Scratch mode**: Reference from definition.json is extracted directly to `solution/{language}/kernel.py`
+- **Existing mode**: User kernel is renamed to `kernel.py` (matches entry point)
+- **Validation**: In existing mode, checks for `def run(` in the kernel file
+
+### Compiled Languages (cuda, cpp)
+- **Entry point**: `binding.py::kernel` (Python bindings using TVM FFI)
+- **Scratch mode**:
+  - Stub templates copied to `solution/{language}/` (kernel.cu + binding.py for CUDA)
+  - Reference saved to `docs/reference.py` for agent to study computation logic
+- **Existing mode**: User kernel keeps original filename (may have multiple files)
+- **Validation**: No `def run(` check (bindings are in Python but kernel logic is compiled)
+
+This distinction is defined in `setup.py` as:
+```python
+PYTHON_LIKE = {"python", "triton", "tilelang"}
+```
+
 ## How setup.py Works
 
 1. Parses `--operator`, `--mode`, `--backend`, `--language`, `--gpu`, `--agent`, `--kernel`, `--name`, `--dataset`, `--task`, `--hints`
 2. If `--operator` not provided, lists available operators from the dataset and exits
 3. Derives `LANGUAGE_NAME` from `--language` (python→Python, triton→Triton, cuda→CUDA, cpp→C++, tilelang→TileLang) and resolves GPU (auto-detect for local, required for modal)
-4. Reads agent config from `templates/agent/{agent}.json` for output filenames and permissions
+4. Reads agent config from `templates/agent/{agent}.json`:
+   - `task_filename`: Name of the generated task file (e.g., "CLAUDE.md")
+   - `hints_filename`: Name of the hints file (e.g., "HINTS.md")
+   - `permissions`: Claude Code permissions (Bash, Edit, Read, Write, etc.)
 5. Auto-discovers operator definition from `<dataset>/definitions/*/<operator>.json`
 6. Calls `generate_context()` to extract template variables (shapes, workload summary, etc.)
 7. Auto-increments run number -> creates `kernel-opt-agent-run-NNN[-label]/`
@@ -57,7 +83,13 @@ kernel-opt-agent/
 9. Auto-generates `config.toml` with operator name, language, GPU, and default build settings
 10. Copies backend-specific bench script and runner (`run_local.py` or `run_modal.py`)
 11. Generates `.claude/settings.local.json` from agent config permissions
-12. Extracts reference kernel from definition.json (scratch, python-like languages) or copies stub templates + saves reference to `docs/reference.py` (scratch, compiled languages) or copies user-provided kernel (existing)
+12. **Extracts or prepares kernel code**:
+    - **Scratch mode, Python-like languages**: Extracts reference from definition.json → `solution/{language}/kernel.py`
+    - **Scratch mode, compiled languages**:
+      - Copies stub templates from `templates/stubs/{language}/` → `solution/{language}/`
+      - Saves reference to `docs/reference.py` (for agent to study computation logic)
+    - **Existing mode, Python-like languages**: Copies user kernel, renames to `kernel.py`
+    - **Existing mode, compiled languages**: Copies user kernel, preserves original filename
 13. Copies hints file (from `--hints` or `templates/hints.md`) as `HINTS.md`
 14. Assembles task file from `task.md` + fragment placeholders -> output filename from agent config
 15. Initializes a git repo in the child directory
@@ -106,9 +138,19 @@ The benchmark system caches reference implementation performance on the first ru
 - `config.toml`: `destination_passing_style = false` by default
 - Operator data (definition.json, workloads.jsonl, reference kernel) comes from the dataset at spawn time, not from static files in this repo
 
-## Custom Dataset Requirements
+## Entry Point Conventions
 
-If you create a custom dataset, the `definition.json` **must** contain a `reference` field with **plain PyTorch code**:
+Entry points vary by language (configured in config.toml `entry_point` field):
+
+- **python, triton, tilelang**: `"kernel.py::run"` — single Python file with `run()` function
+- **cuda**: `"binding.py::kernel"` — Python bindings file with `kernel()` function calling CUDA kernel
+- **cpp**: `"binding.py::kernel"` — Python bindings file with `kernel()` function calling C++ code
+
+For compiled languages, the `binding.py` file uses TVM FFI (`from tvm.ffi import register_func`) to expose compiled code to Python.
+
+## ⚠️ Custom Dataset Requirements
+
+**CRITICAL**: If you create a custom dataset, the `definition.json` **must** contain a `reference` field with **plain PyTorch code**:
 
 ```json
 {

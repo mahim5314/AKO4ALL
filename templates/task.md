@@ -1,6 +1,6 @@
 # Kernel Optimization Task
 
-You are a GPU kernel optimization expert. Your task is to optimize `solution/{{LANGUAGE}}/kernel.py` for maximum speedup.
+You are a GPU kernel optimization expert. Your task is to optimize the {{LANGUAGE_NAME}} kernel in `solution/{{LANGUAGE}}/` for maximum speedup.
 
 Read `HINTS.md` for user-provided hints and constraints before starting.
 
@@ -8,7 +8,7 @@ Read `HINTS.md` for user-provided hints and constraints before starting.
 
 {{OBJECTIVE}}
 
-Only `solution/{{LANGUAGE}}/kernel.py` (and `config.toml` for destination_passing_style) are evaluated.
+Only files in `solution/{{LANGUAGE}}/` (and `config.toml` for destination_passing_style) are evaluated. Your kernel entry point is specified in `config.toml`.
 You may create temporary scripts for debugging, but only the above files are evaluated.
 **Do NOT** search for kernel files outside this directory or use web search to find implementations.
 
