@@ -1,0 +1,2 @@
+- Benchmarks run remotely via Modal (no local GPU needed)
+- Run Python locally for analysis/debugging: `conda run -n fi-bench --no-capture-output python ...`

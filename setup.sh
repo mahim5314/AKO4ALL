@@ -7,8 +7,9 @@
 #   bash setup.sh --operator <name> --backend modal                 # Modal B200, from scratch
 #   bash setup.sh --operator <name> --mode existing --kernel /path/to/kernel.py
 #   bash setup.sh --operator <name> --dataset /path/to/dataset      # custom dataset
-#   bash setup.sh --operator <name> --prompt /path/to/prompt.md     # custom prompt
-#   bash setup.sh --operator <name> --info /path/to/info.md         # custom info
+#   bash setup.sh --operator <name> --language cuda                 # CUDA kernel (default: triton)
+#   bash setup.sh --operator <name> --task /path/to/task.md         # custom task template
+#   bash setup.sh --operator <name> --hints /path/to/hints.md      # custom hints
 #   bash setup.sh                                                   # list available operators
 
 set -euo pipefail
@@ -16,12 +17,15 @@ set -euo pipefail
 # --- Defaults ---
 MODE="scratch"
 BACKEND="local"
+LANGUAGE="triton"
+GPU=""
+AGENT="claude"
 KERNEL_PATH=""
 LABEL=""
 OPERATOR=""
 DATASET_PATH=""
-PROMPT_PATH=""
-INFO_PATH=""
+TASK_PATH=""
+HINTS_PATH=""
 
 # --- Parse arguments ---
 while [[ $# -gt 0 ]]; do
@@ -32,6 +36,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         --backend)
             BACKEND="$2"
+            shift 2
+            ;;
+        --language)
+            LANGUAGE="$2"
+            shift 2
+            ;;
+        --gpu)
+            GPU="$2"
+            shift 2
+            ;;
+        --agent)
+            AGENT="$2"
             shift 2
             ;;
         --kernel)
@@ -50,17 +66,17 @@ while [[ $# -gt 0 ]]; do
             DATASET_PATH="$2"
             shift 2
             ;;
-        --prompt)
-            PROMPT_PATH="$2"
+        --task|--prompt)
+            TASK_PATH="$2"
             shift 2
             ;;
-        --info)
-            INFO_PATH="$2"
+        --hints|--info)
+            HINTS_PATH="$2"
             shift 2
             ;;
         *)
             echo "Error: Unknown argument '$1'"
-            echo "Usage: bash setup.sh --operator <name> [--dataset <path>] [--mode scratch|existing] [--backend local|modal] [--kernel <path>] [--name <label>] [--prompt <path>] [--info <path>]"
+            echo "Usage: bash setup.sh --operator <name> [--dataset <path>] [--mode scratch|existing] [--backend local|modal] [--language triton|cuda] [--gpu a100|b200] [--agent claude] [--kernel <path>] [--name <label>] [--task <path>] [--hints <path>]"
             exit 1
             ;;
     esac
@@ -69,6 +85,42 @@ done
 # --- Resolve paths ---
 PARENT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BASE_DIR="$(dirname "$PARENT_DIR")"
+
+# --- Derive LANGUAGE_NAME and GPU ---
+case "$LANGUAGE" in
+    triton) LANGUAGE_NAME="Triton" ;;
+    cuda)   LANGUAGE_NAME="CUDA" ;;
+    *)
+        echo "Error: --language must be 'triton' or 'cuda' (got '$LANGUAGE')"
+        exit 1
+        ;;
+esac
+
+# Infer GPU from backend if not specified
+if [[ -z "$GPU" ]]; then
+    case "$BACKEND" in
+        local) GPU="a100" ;;
+        modal) GPU="b200" ;;
+    esac
+fi
+
+case "$GPU" in
+    a100) GPU_NAME="A100" ;;
+    b200) GPU_NAME="B200" ;;
+    *)
+        echo "Error: --gpu must be 'a100' or 'b200' (got '$GPU')"
+        exit 1
+        ;;
+esac
+
+# --- Resolve agent config ---
+AGENT_CONFIG="$PARENT_DIR/templates/agent/${AGENT}.json"
+if [[ ! -f "$AGENT_CONFIG" ]]; then
+    echo "Error: Agent config not found: $AGENT_CONFIG"
+    exit 1
+fi
+TASK_FILENAME=$(python3 -c "import json; print(json.load(open('$AGENT_CONFIG'))['task_filename'])")
+HINTS_FILENAME=$(python3 -c "import json; print(json.load(open('$AGENT_CONFIG'))['hints_filename'])")
 
 # --- Resolve dataset path ---
 if [[ -n "$DATASET_PATH" ]]; then
@@ -87,20 +139,20 @@ if [[ ! -d "$FIB_DATASET_PATH/definitions" ]]; then
     exit 1
 fi
 
-# --- Resolve prompt and info paths ---
-if [[ -z "$PROMPT_PATH" ]]; then
-    PROMPT_PATH="$PARENT_DIR/templates/prompt.md"
+# --- Resolve task and hints paths ---
+if [[ -z "$TASK_PATH" ]]; then
+    TASK_PATH="$PARENT_DIR/templates/task.md"
 fi
-if [[ ! -f "$PROMPT_PATH" ]]; then
-    echo "Error: Prompt file not found: $PROMPT_PATH"
+if [[ ! -f "$TASK_PATH" ]]; then
+    echo "Error: Task template not found: $TASK_PATH"
     exit 1
 fi
 
-if [[ -z "$INFO_PATH" ]]; then
-    INFO_PATH="$PARENT_DIR/templates/info.md"
+if [[ -z "$HINTS_PATH" ]]; then
+    HINTS_PATH="$PARENT_DIR/templates/hints.md"
 fi
-if [[ ! -f "$INFO_PATH" ]]; then
-    echo "Error: Info file not found: $INFO_PATH"
+if [[ ! -f "$HINTS_PATH" ]]; then
+    echo "Error: Hints file not found: $HINTS_PATH"
     exit 1
 fi
 
@@ -114,7 +166,7 @@ if [[ -z "$OPERATOR" ]]; then
         echo "  $op_name  ($op_type)"
     done
     echo ""
-    echo "Usage: bash setup.sh --operator <name> [--dataset <path>] [--mode scratch|existing] [--backend local|modal] [--kernel <path>] [--name <label>] [--prompt <path>] [--info <path>]"
+    echo "Usage: bash setup.sh --operator <name> [--dataset <path>] [--mode scratch|existing] [--backend local|modal] [--language triton|cuda] [--gpu a100|b200] [--agent claude] [--kernel <path>] [--name <label>] [--task <path>] [--hints <path>]"
     exit 0
 fi
 
@@ -172,6 +224,18 @@ if [[ "$MODE" == "existing" ]]; then
     fi
 fi
 
+# --- Validate fragment files exist ---
+GPU_FRAGMENT="$PARENT_DIR/templates/fragments/gpu-${GPU}.md"
+BACKEND_FRAGMENT="$PARENT_DIR/templates/fragments/backend-${BACKEND}.md"
+OBJECTIVE_FRAGMENT="$PARENT_DIR/templates/fragments/objective-${MODE}.md"
+
+for frag in "$GPU_FRAGMENT" "$BACKEND_FRAGMENT" "$OBJECTIVE_FRAGMENT"; do
+    if [[ ! -f "$frag" ]]; then
+        echo "Error: Fragment not found: $frag"
+        exit 1
+    fi
+done
+
 # --- Generate template context ---
 CONTEXT_FILE=$(mktemp)
 trap 'rm -f "$CONTEXT_FILE"' EXIT
@@ -216,7 +280,7 @@ CHILD_DIR="$BASE_DIR/$CHILD_NAME"
 mkdir -p "$CHILD_DIR/.claude"
 mkdir -p "$CHILD_DIR/docs"
 mkdir -p "$CHILD_DIR/scripts"
-mkdir -p "$CHILD_DIR/solution/triton"
+mkdir -p "$CHILD_DIR/solution/${LANGUAGE}"
 
 # --- Copy common files ---
 cp "$PARENT_DIR/.gitignore" "$CHILD_DIR/.gitignore"
@@ -225,8 +289,8 @@ cp "$WORKLOADS_FILE" "$CHILD_DIR/docs/workloads.jsonl"
 cp "$PARENT_DIR/scripts/pack_solution.py" "$CHILD_DIR/scripts/pack_solution.py"
 cp "$PARENT_DIR/scripts/bench_utils.py" "$CHILD_DIR/scripts/bench_utils.py"
 
-# --- Copy Info.md ---
-cp "$INFO_PATH" "$CHILD_DIR/Info.md"
+# --- Copy hints file ---
+cp "$HINTS_PATH" "$CHILD_DIR/$HINTS_FILENAME"
 
 # --- Generate config.toml ---
 cat > "$CHILD_DIR/config.toml" <<TOML
@@ -236,7 +300,7 @@ definition = "${OPERATOR}"
 author = "user"
 
 [build]
-language = "triton"
+language = "${LANGUAGE}"
 entry_point = "kernel.py::run"
 destination_passing_style = false
 TOML
@@ -250,8 +314,16 @@ else
     cp "$PARENT_DIR/scripts/run_modal.py" "$CHILD_DIR/scripts/run_modal.py"
 fi
 
-# --- Generate .claude/settings.local.json ---
-cp "$PARENT_DIR/templates/settings/${BACKEND}.json" "$CHILD_DIR/.claude/settings.local.json"
+# --- Generate .claude/settings.local.json from agent config ---
+python3 -c "
+import json
+with open('$AGENT_CONFIG') as f:
+    config = json.load(f)
+settings = {'permissions': config['permissions']}
+with open('$CHILD_DIR/.claude/settings.local.json', 'w') as f:
+    json.dump(settings, f, indent=2)
+    f.write('\n')
+"
 
 # --- Copy kernel (and config.toml if colocated with kernel) ---
 if [[ "$MODE" == "scratch" ]]; then
@@ -264,11 +336,11 @@ ref = d.get('reference', '')
 if not ref:
     print('Error: No reference field in definition.json', file=sys.stderr)
     sys.exit(1)
-with open('$CHILD_DIR/solution/triton/kernel.py', 'w') as f:
+with open('$CHILD_DIR/solution/${LANGUAGE}/kernel.py', 'w') as f:
     f.write(ref)
 "
 else
-    cp "$KERNEL_PATH" "$CHILD_DIR/solution/triton/kernel.py"
+    cp "$KERNEL_PATH" "$CHILD_DIR/solution/${LANGUAGE}/kernel.py"
     # If a config.toml exists next to the kernel (e.g. from a trajectory snapshot),
     # use it to preserve destination_passing_style and other settings
     KERNEL_DIR="$(dirname "$KERNEL_PATH")"
@@ -278,45 +350,54 @@ else
     fi
 fi
 
-# --- Read Prompt.md content ---
-PROMPT_CONTENT=$(cat "$PROMPT_PATH")
+# --- Read fragment contents ---
+GPU_CONTENT=$(cat "$GPU_FRAGMENT")
+BACKEND_CONTENT=$(cat "$BACKEND_FRAGMENT")
+OBJECTIVE_RAW=$(cat "$OBJECTIVE_FRAGMENT")
 
-# --- Generate CLAUDE.md ---
-GPU_SHORT=$([[ "$BACKEND" == "local" ]] && echo "A100 GPU" || echo "B200 GPU")
-OBJECTIVE=$(cat "$PARENT_DIR/templates/claude-md/objective-${MODE}.md")
-OBJECTIVE="${OBJECTIVE//\$\{GPU_SHORT\}/$GPU_SHORT}"
+# --- Generate task file (CLAUDE.md) ---
+# First pass: replace variables in objective fragment
+OBJECTIVE="${OBJECTIVE_RAW//\{\{LANGUAGE_NAME\}\}/$LANGUAGE_NAME}"
+OBJECTIVE="${OBJECTIVE//\{\{LANGUAGE\}\}/$LANGUAGE}"
+OBJECTIVE="${OBJECTIVE//\{\{GPU_NAME\}\}/$GPU_NAME}"
 OBJECTIVE="${OBJECTIVE//\{\{OPERATOR_DESCRIPTION\}\}/$OPERATOR_DESCRIPTION}"
 OBJECTIVE="${OBJECTIVE//\{\{OPERATOR\}\}/$OPERATOR}"
-ENVIRONMENT=$(cat "$PARENT_DIR/templates/claude-md/environment-${BACKEND}.md")
 
-# Build CLAUDE.md by replacing placeholders in common.md
-# Use awk since sed struggles with multi-line replacements
+# Second pass: assemble task.md with all placeholders
 awk \
-    -v prompt="$PROMPT_CONTENT" \
     -v objective="$OBJECTIVE" \
-    -v environment="$ENVIRONMENT" \
+    -v gpu="$GPU_CONTENT" \
+    -v backend="$BACKEND_CONTENT" \
     -v operator="$OPERATOR" \
     -v operator_desc="$OPERATOR_DESCRIPTION" \
     -v num_workloads="$NUM_WORKLOADS" \
     -v shape_summary="$SHAPE_SUMMARY" \
     -v workload_summary="$WORKLOAD_SUMMARY" \
+    -v language="$LANGUAGE" \
+    -v language_name="$LANGUAGE_NAME" \
+    -v gpu_name="$GPU_NAME" \
     '
-    /\{\{PROMPT\}\}/ { print prompt; next }
     /\{\{OBJECTIVE\}\}/ { print objective; next }
-    /\{\{ENVIRONMENT\}\}/ { print environment; next }
-    /\{\{OPERATOR\}\}/ { gsub(/\{\{OPERATOR\}\}/, operator); print; next }
-    /\{\{OPERATOR_DESCRIPTION\}\}/ { gsub(/\{\{OPERATOR_DESCRIPTION\}\}/, operator_desc); print; next }
-    /\{\{NUM_WORKLOADS\}\}/ { gsub(/\{\{NUM_WORKLOADS\}\}/, num_workloads); print; next }
+    /\{\{GPU\}\}/ { print gpu; next }
+    /\{\{BACKEND\}\}/ { print backend; next }
     /\{\{SHAPE_SUMMARY\}\}/ { print shape_summary; next }
     /\{\{WORKLOAD_SUMMARY\}\}/ { print workload_summary; next }
-    { print }
-' "$PARENT_DIR/templates/claude-md/common.md" > "$CHILD_DIR/CLAUDE.md"
+    {
+        gsub(/\{\{OPERATOR\}\}/, operator)
+        gsub(/\{\{OPERATOR_DESCRIPTION\}\}/, operator_desc)
+        gsub(/\{\{NUM_WORKLOADS\}\}/, num_workloads)
+        gsub(/\{\{LANGUAGE\}\}/, language)
+        gsub(/\{\{LANGUAGE_NAME\}\}/, language_name)
+        gsub(/\{\{GPU_NAME\}\}/, gpu_name)
+        print
+    }
+' "$TASK_PATH" > "$CHILD_DIR/$TASK_FILENAME"
 
 # --- Git init ---
 cd "$CHILD_DIR"
 git init -q
 git add -A
-git commit -q -m "Initial commit (spawned from kernel-opt-agent, operator=$OPERATOR, mode=$MODE, backend=$BACKEND)"
+git commit -q -m "Initial commit (spawned from kernel-opt-agent, operator=$OPERATOR, mode=$MODE, backend=$BACKEND, language=$LANGUAGE)"
 
 # --- Summary ---
 echo ""
@@ -325,6 +406,8 @@ echo "  Path:     $CHILD_DIR"
 echo "  Operator: $OPERATOR"
 echo "  Mode:     $MODE"
 echo "  Backend:  $BACKEND"
+echo "  Language: $LANGUAGE"
+echo "  GPU:      $GPU_NAME"
 echo "  Dataset:  $FIB_DATASET_PATH"
 if [[ "$MODE" == "existing" ]]; then
     echo "  Kernel:   $KERNEL_PATH"
@@ -335,9 +418,6 @@ echo "  cd $CHILD_DIR"
 echo ""
 echo "  # Start your code agent, e.g.:"
 echo "  claude"
-echo ""
-echo "  # Then send an optimization instruction, e.g.:"
-echo "  # \"Read CLAUDE.md and Info.md, then begin optimizing the kernel.\""
 echo ""
 echo "To run benchmark manually:"
 echo "  bash scripts/bench.sh"

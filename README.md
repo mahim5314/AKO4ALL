@@ -8,15 +8,12 @@ A tool for automated GPU kernel optimization using Code Agents (e.g. Claude Code
 # List available operators
 bash setup.sh
 
-# Create an optimization environment (local A100, from scratch)
+# Create an optimization environment (local A100, Triton, from scratch)
 bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64
 
 # Enter the child environment and start your code agent
 cd ../kernel-opt-agent-run-001
 claude
-
-# Then send an optimization instruction, e.g.:
-# "Read CLAUDE.md and Info.md, then begin optimizing the kernel."
 ```
 
 ## Setup Options
@@ -27,10 +24,13 @@ bash setup.sh \
   [--dataset /path/to/dataset] \    # default: $FIB_DATASET_PATH
   [--mode scratch|existing] \       # default: scratch
   [--backend local|modal] \         # default: local
+  [--language triton|cuda] \        # default: triton
+  [--gpu a100|b200] \               # default: inferred from backend
+  [--agent claude] \                # default: claude
   [--kernel /path/to/kernel.py] \   # required for existing mode
   [--name <label>] \                # optional label for the run
-  [--prompt /path/to/prompt.md] \   # custom system prompt
-  [--info /path/to/info.md]         # custom info for the agent
+  [--task /path/to/task.md] \       # custom task template
+  [--hints /path/to/hints.md]       # custom hints for the agent
 ```
 
 ### Examples
@@ -50,9 +50,12 @@ bash setup.sh --operator moe_fp8_block_scale_ds_routing_topk8_ng8_kg4_e32_h7168_
 # Custom dataset
 bash setup.sh --operator my_custom_op --dataset /path/to/my/traceset
 
-# Custom prompt and info
+# Custom task template and hints
 bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
-    --prompt ./my_prompt.md --info ./my_hints.md
+    --task ./my_task.md --hints ./my_hints.md
+
+# Deprecated flags still work (--prompt → --task, --info → --hints)
+bash setup.sh --operator my_op --prompt ./my_task.md --info ./my_hints.md
 ```
 
 ## How It Works
@@ -60,21 +63,21 @@ bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
 1. `setup.sh --operator <name>` discovers the operator definition and workloads from the dataset
 2. Creates a child environment `kernel-opt-agent-run-NNN[-label]/` with everything the agent needs
 3. You start your code agent (e.g. `claude`) in the child environment
-4. The agent reads `CLAUDE.md` and `Info.md`, then iteratively optimizes the kernel
+4. The agent reads `CLAUDE.md` and `HINTS.md`, then iteratively optimizes the kernel
 
 ### Child Environment Structure
 
 ```
 kernel-opt-agent-run-NNN/
-├── CLAUDE.md                   # Auto-generated task spec (prompt + operator details)
-├── Info.md                     # User-editable hints and context
+├── CLAUDE.md                   # Auto-generated task spec (operator details + instructions)
+├── HINTS.md                    # User-editable hints and constraints
 ├── config.toml                 # Operator configuration
 ├── .gitignore
 ├── docs/
 │   ├── definition.json         # Operator definition
 │   └── workloads.jsonl         # Benchmark workloads
 ├── solution/
-│   └── triton/
+│   └── triton/                 # or cuda/, based on --language
 │       └── kernel.py           # The kernel to optimize
 ├── scripts/
 │   ├── bench_utils.py          # Shared benchmark utilities
@@ -89,23 +92,23 @@ kernel-opt-agent-run-NNN/
 
 ## Customization
 
-### Custom Prompt
+### Custom Task Template
 
-The default prompt (`templates/prompt.md`) tells the agent how to work. Override it with `--prompt`:
-
-```bash
-bash setup.sh --operator my_op --prompt ./my_prompt.md
-```
-
-### Custom Info
-
-`Info.md` is placed in each child environment for ad-hoc hints. Override the template with `--info`:
+The default task template (`templates/task.md`) defines the agent's instructions. Override it with `--task`:
 
 ```bash
-bash setup.sh --operator my_op --info ./my_analysis.md
+bash setup.sh --operator my_op --task ./my_task.md
 ```
 
-Or edit `Info.md` directly in the child environment before launching.
+### Custom Hints
+
+`HINTS.md` is placed in each child environment for ad-hoc hints. Override the template with `--hints`:
+
+```bash
+bash setup.sh --operator my_op --hints ./my_analysis.md
+```
+
+Or edit `HINTS.md` directly in the child environment before launching.
 
 ### Custom Dataset
 
@@ -153,7 +156,7 @@ bash scripts/bench.sh --force-baseline    # Force re-profile reference
 
 **Local backend (default):**
 - NVIDIA A100-SXM4-40GB
-- Conda env `fi-bench` (Python 3.12, Triton 3.5.1, PyTorch 2.9.1+cu128, `flashinfer-bench`)
+- Conda env `fi-bench` (Python 3.12, PyTorch 2.9.1+cu128, `flashinfer-bench`)
 - `FIB_DATASET_PATH` pointing to the trace set, or use `--dataset`
 
 **Modal backend:**

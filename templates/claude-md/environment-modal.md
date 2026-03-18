@@ -1,3 +1,0 @@
-- Benchmarks run remotely on **NVIDIA B200** GPU via Modal (Blackwell SM 10.0, 148 SMs, 228KB shared mem/SM, 126MB L2, 178GB HBM3e ~7673 GB/s, ~4500 TFLOPS BF16 tensor core)
-- No local GPU needed for benchmarking
-- To run Python scripts locally (e.g. for analysis or debugging): `conda run -n fi-bench --no-capture-output python ...`

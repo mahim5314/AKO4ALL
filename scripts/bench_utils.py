@@ -16,9 +16,22 @@ from typing import Callable
 from flashinfer_bench import BenchmarkConfig, BuildSpec, Solution
 from flashinfer_bench.agents import pack_solution_from_files
 
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
 # --- Project paths ---
 PROJECT_ROOT = Path(__file__).parent.parent
 BASELINE_PATH = PROJECT_ROOT / "baseline.json"
+
+
+def get_language() -> str:
+    """Read the build language from config.toml."""
+    config_path = PROJECT_ROOT / "config.toml"
+    with open(config_path, "rb") as f:
+        config = tomllib.load(f)
+    return config["build"]["language"]
 
 # --- Benchmark constants ---
 BASELINE_ITERATIONS = 20   # Reference profiling: low to avoid CUPTI cache explosion
@@ -123,11 +136,6 @@ def pack_reference_as_solution() -> Solution:
     Extracts the pure-Python reference code and packs it as if it were a Triton
     solution, so it can be benchmarked to measure reference latency.
     """
-    try:
-        import tomllib
-    except ImportError:
-        import tomli as tomllib
-
     # Read reference code from definition.json
     def_path = PROJECT_ROOT / "docs" / "definition.json"
     with open(def_path) as f:
@@ -385,7 +393,8 @@ def save_trajectory(
     run_dir.mkdir(parents=True)
 
     # Save kernel.py and config.toml
-    kernel_path = PROJECT_ROOT / "solution/triton/kernel.py"
+    language = get_language()
+    kernel_path = PROJECT_ROOT / "solution" / language / "kernel.py"
     if kernel_path.exists():
         shutil.copy2(kernel_path, run_dir / "kernel.py")
     config_path = PROJECT_ROOT / "config.toml"
