@@ -223,6 +223,7 @@ cp "$PARENT_DIR/.gitignore" "$CHILD_DIR/.gitignore"
 cp "$DEFINITION_FILE" "$CHILD_DIR/docs/definition.json"
 cp "$WORKLOADS_FILE" "$CHILD_DIR/docs/workloads.jsonl"
 cp "$PARENT_DIR/scripts/pack_solution.py" "$CHILD_DIR/scripts/pack_solution.py"
+cp "$PARENT_DIR/scripts/bench_utils.py" "$CHILD_DIR/scripts/bench_utils.py"
 
 # --- Copy Info.md ---
 cp "$INFO_PATH" "$CHILD_DIR/Info.md"

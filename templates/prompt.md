@@ -15,7 +15,7 @@ You are a GPU kernel optimization expert. Your task is to iteratively optimize `
 
 - **Bench after every change**: Always run the benchmark after modifying the kernel to verify correctness and measure performance
 - **All workloads must PASS**: A kernel with any FAILED workload is invalid and receives no score. Correctness is a hard gate.
-- **Score = mean speedup**: Higher is better. This is the single metric used for ranking.
+- **Score = mean speedup**: Higher is better. This is the single optimization metric.
 - **Roll back on regression**: If the score drops after a change, revert to the previous version before trying something else
 - **Correctness first, then performance**: Never sacrifice correctness for speed
 - **Target weak workloads**: Don't optimize solely on the final score — check the per-group breakdown and focus on the slowest workload groups

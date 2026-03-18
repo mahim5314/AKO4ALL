@@ -77,9 +77,11 @@ kernel-opt-agent-run-NNN/
 │   └── triton/
 │       └── kernel.py           # The kernel to optimize
 ├── scripts/
+│   ├── bench_utils.py          # Shared benchmark utilities
 │   ├── bench.sh                # Benchmark script
 │   ├── run_local.py/run_modal.py  # Benchmark runner
 │   └── pack_solution.py        # Pack kernel for evaluation
+├── baseline.json               # Auto-created, cached reference performance
 ├── trajectory/                 # Auto-created, stores each bench run
 └── .claude/
     └── settings.local.json     # Permission fallback
@@ -136,6 +138,16 @@ operator_name:
 ```
 
 The `score` field (= `FINAL SCORE` = mean speedup across all workloads) is the primary metric. All workloads must PASS for a valid score.
+
+### Baseline Caching
+
+The first benchmark run profiles the reference implementation and caches the result to `baseline.json`. Subsequent runs skip reference profiling for faster, more stable comparisons and use higher iteration counts (100 vs 20) for more accurate solution timing.
+
+```bash
+bash scripts/bench.sh "baseline"          # First run: profiles reference, caches baseline
+bash scripts/bench.sh "opt_v1"            # Uses cached baseline, 100 iterations for solution
+bash scripts/bench.sh --force-baseline    # Force re-profile reference
+```
 
 ## Requirements
 

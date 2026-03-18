@@ -32,6 +32,7 @@ kernel-opt-agent/
 │       └── modal.json                 # .claude/settings.local.json for modal backend
 └── scripts/
     ├── generate_context.py            # Extracts operator metadata for template rendering
+    ├── bench_utils.py                 # Shared benchmark utilities (baseline caching, scoring)
     ├── bench.sh                       # Local benchmark script
     ├── bench_modal.sh                 # Modal benchmark script
     ├── run_local.py                   # Local A100 benchmark runner
@@ -82,6 +83,15 @@ Templates use these placeholders (replaced at spawn time):
 - **Info template**: Edit `templates/info.md`
 - **Config defaults**: Edit the `config.toml` generation block in `setup.sh`
 - **Benchmark scripts**: Edit `scripts/bench.sh`, `scripts/bench_modal.sh`, etc.
+
+## Baseline Caching
+
+The benchmark system caches reference implementation performance on the first run:
+- First `bench.sh` run profiles the reference (20 iterations) and saves metrics to `baseline.json`
+- Subsequent runs skip reference profiling and use cached values with 100 iterations for the solution
+- This provides stable reference metrics and more accurate solution timing
+- Use `--force-baseline` to re-profile: `bash scripts/bench.sh --force-baseline`
+- `baseline.json` auto-invalidates when workloads change
 
 ## Key Constraints
 

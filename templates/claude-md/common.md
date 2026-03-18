@@ -25,6 +25,8 @@ bash scripts/bench.sh
 
 - **PASSED** = correct output within tolerance, only PASSED results count for scoring. **FAILED** = incorrect or crash.
 - **speedup_factor** = reference_latency / your_latency. Higher is better.
+- The **first run** profiles the reference implementation and caches the result to `baseline.json`. Subsequent runs skip reference profiling (faster, more stable comparisons) and use more iterations for accurate solution timing.
+- Use `bash scripts/bench.sh --force-baseline` to re-profile the reference if needed.
 
 ## Trajectory Tracking
 
