@@ -1,0 +1,3 @@
+- Conda env: `fi-bench` (Python 3.12, Triton 3.5.1, PyTorch 2.9.1+cu128)
+- GPU: NVIDIA A100-SXM4-40GB (Ampere SM 8.0, 108 SMs, 164KB shared mem/SM, 40MB L2, 1555 GB/s HBM, 312 TFLOPS BF16 tensor core)
+- Run all Python commands with: `conda run -n fi-bench --no-capture-output python ...`

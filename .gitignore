@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Trajectory tracking
+trajectory/
+
+# Solution artifacts
+solution.json
+
+# Spawned run environments
+kernel-opt-agent-run-*/
