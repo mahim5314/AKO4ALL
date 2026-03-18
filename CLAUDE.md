@@ -6,7 +6,7 @@ It is NOT an optimization environment itself — use `setup.py` to create one.
 ## Repository Purpose
 
 Provides scaffolding to create child environments where a Code Agent (e.g. Claude Code)
-autonomously optimizes a GPU kernel (Triton or CUDA), using the flashinfer-bench SDK for evaluation.
+autonomously optimizes a GPU kernel (Python, Triton, CUDA, C++, or TileLang), using the flashinfer-bench SDK for evaluation.
 
 Supports any flashinfer-bench compatible dataset, including user-defined operators.
 
@@ -28,6 +28,10 @@ kernel-opt-agent/
 │   │   ├── gpu-b200.md                # B200 hardware specs
 │   │   ├── backend-local.md           # Local execution instructions
 │   │   └── backend-modal.md           # Modal execution instructions
+│   ├── stubs/
+│   │   └── cuda/                      # Stub templates for CUDA scratch mode
+│   │       ├── kernel.cu
+│   │       └── binding.py
 │   └── agent/
 │       └── claude.json                # Claude Code agent config (output filenames + permissions)
 └── scripts/
@@ -44,7 +48,7 @@ kernel-opt-agent/
 
 1. Parses `--operator`, `--mode`, `--backend`, `--language`, `--gpu`, `--agent`, `--kernel`, `--name`, `--dataset`, `--task`, `--hints`
 2. If `--operator` not provided, lists available operators from the dataset and exits
-3. Derives `LANGUAGE_NAME` from `--language` (triton→Triton, cuda→CUDA) and resolves GPU (auto-detect for local, required for modal)
+3. Derives `LANGUAGE_NAME` from `--language` (python→Python, triton→Triton, cuda→CUDA, cpp→C++, tilelang→TileLang) and resolves GPU (auto-detect for local, required for modal)
 4. Reads agent config from `templates/agent/{agent}.json` for output filenames and permissions
 5. Auto-discovers operator definition from `<dataset>/definitions/*/<operator>.json`
 6. Calls `generate_context()` to extract template variables (shapes, workload summary, etc.)
@@ -53,7 +57,7 @@ kernel-opt-agent/
 9. Auto-generates `config.toml` with operator name, language, GPU, and default build settings
 10. Copies backend-specific bench script and runner (`run_local.py` or `run_modal.py`)
 11. Generates `.claude/settings.local.json` from agent config permissions
-12. Extracts reference kernel from definition.json (scratch) or copies user-provided kernel (existing)
+12. Extracts reference kernel from definition.json (scratch, python-like languages) or copies stub templates + saves reference to `docs/reference.py` (scratch, compiled languages) or copies user-provided kernel (existing)
 13. Copies hints file (from `--hints` or `templates/hints.md`) as `HINTS.md`
 14. Assembles task file from `task.md` + fragment placeholders -> output filename from agent config
 15. Initializes a git repo in the child directory
@@ -64,8 +68,8 @@ Templates use these placeholders (replaced at spawn time):
 
 | Placeholder | Source | Example |
 |-------------|--------|---------|
-| `{{LANGUAGE}}` | `--language` flag (default: triton) | `triton` |
-| `{{LANGUAGE_NAME}}` | derived from `--language` | `Triton` |
+| `{{LANGUAGE}}` | `--language` flag (default: triton) | `triton`, `cuda`, `cpp` |
+| `{{LANGUAGE_NAME}}` | derived from `--language` | `Triton`, `CUDA`, `C++` |
 | `{{GPU}}` | `fragments/gpu-{gpu}.md` content (or fallback `- GPU: {NAME}`) | (hardware specs line) |
 | `{{GPU_NAME}}` | `uppercase(--gpu)` | `A100`, `H100` |
 | `{{BACKEND}}` | `fragments/backend-{backend}.md` content | (execution instructions) |
@@ -98,6 +102,24 @@ The benchmark system caches reference implementation performance on the first ru
 
 ## Key Constraints
 
-- Agents only edit `solution/{language}/kernel.py` (and optionally `config.toml`)
+- Agents only edit files in `solution/{language}/` (and optionally `config.toml`)
 - `config.toml`: `destination_passing_style = false` by default
 - Operator data (definition.json, workloads.jsonl, reference kernel) comes from the dataset at spawn time, not from static files in this repo
+
+## Custom Dataset Requirements
+
+If you create a custom dataset, the `definition.json` **must** contain a `reference` field with **plain PyTorch code**:
+
+```json
+{
+  "name": "my_operator",
+  "reference": "import torch\n\n@torch.no_grad()\ndef run(...):\n    # Plain PyTorch implementation\n    return ...",
+  ...
+}
+```
+
+The `reference` is the mathematical specification — flashinfer-bench executes it as Python (`language=PYTHON`, `entry_point=main.py::run`) for:
+- Generating reference outputs (correctness baseline)
+- Profiling reference latency (performance baseline)
+
+**Do NOT use CUDA/C++/Triton code in `reference`** — the framework will fail. Those languages belong in the `Solution` being optimized, not the `Definition.reference`.

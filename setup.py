@@ -7,7 +7,7 @@ Usage:
     python setup.py --operator <name> --backend modal --gpu b200      # Modal B200, from scratch
     python setup.py --operator <name> --mode existing --kernel /path/to/kernel.py
     python setup.py --operator <name> --dataset /path/to/dataset      # custom dataset
-    python setup.py --operator <name> --language cuda                 # CUDA kernel (default: triton)
+    python setup.py --operator <name> --language cuda                 # CUDA kernel (supported: python, triton, cuda, cpp, tilelang)
     python setup.py --operator <name> --task /path/to/task.md         # custom task template
     python setup.py --operator <name> --hints /path/to/hints.md      # custom hints
     python setup.py                                                   # list available operators
@@ -32,12 +32,22 @@ from generate_context import generate_context
 
 USAGE_LINE = (
     "Usage: python setup.py --operator <name> [--dataset <path>] "
-    "[--mode scratch|existing] [--backend local|modal] [--language triton|cuda] "
+    "[--mode scratch|existing] [--backend local|modal] "
+    "[--language python|triton|cuda|cpp|tilelang] "
     "[--gpu <name>] [--agent claude] [--kernel <path>] [--name <label>] "
     "[--task <path>] [--hints <path>]"
 )
 
-LANGUAGE_NAMES = {"triton": "Triton", "cuda": "CUDA"}
+# All languages supported by flashinfer-bench SDK
+SUPPORTED_LANGUAGES = ["python", "triton", "cuda", "cpp", "tilelang"]
+LANGUAGE_NAMES = {
+    "python": "Python", "triton": "Triton", "cuda": "CUDA",
+    "cpp": "C++", "tilelang": "TileLang",
+}
+
+# Languages where scratch mode can use the definition.json reference directly
+# (reference is always Python/Triton code)
+PYTHON_LIKE = {"python", "triton", "tilelang"}
 
 
 def parse_args():
@@ -47,7 +57,7 @@ def parse_args():
     parser.add_argument("--operator", default="")
     parser.add_argument("--mode", default="scratch", choices=["scratch", "existing"])
     parser.add_argument("--backend", default="local", choices=["local", "modal"])
-    parser.add_argument("--language", default="triton", choices=["triton", "cuda"])
+    parser.add_argument("--language", default="triton", choices=SUPPORTED_LANGUAGES)
     parser.add_argument("--gpu", default="")
     parser.add_argument("--agent", default="claude")
     parser.add_argument("--kernel", default="")
@@ -137,14 +147,14 @@ def discover_operator(dataset_path, operator):
     return definition_path, workloads_path, op_type
 
 
-def validate_existing_mode(kernel_path):
+def validate_existing_mode(kernel_path, language):
     """Validate kernel file for existing mode."""
     if not kernel_path:
         sys.exit("Error: --mode existing requires --kernel <path>")
     kp = Path(kernel_path)
     if not kp.is_file():
         sys.exit(f"Error: Kernel file not found: {kernel_path}")
-    if "def run(" not in kp.read_text():
+    if language in PYTHON_LIKE and "def run(" not in kp.read_text():
         sys.exit(f"Error: Kernel file does not contain 'def run(': {kernel_path}")
 
 
@@ -215,7 +225,15 @@ def populate_child(child_dir, *, language, operator, gpu, mode, backend, kernel_
     # Copy hints file
     shutil.copy2(Path(hints_path), child_dir / hints_filename)
 
-    # Generate config.toml
+    # Generate config.toml with per-language entry_point
+    if language in PYTHON_LIKE:
+        entry_point = "kernel.py::run"
+    elif language == "cuda":
+        entry_point = "binding.py::kernel"
+    elif language == "cpp":
+        entry_point = "binding.py::kernel"  # C++ also uses Python bindings
+    else:
+        entry_point = "kernel.py::run"  # fallback
     config_toml = (
         f'[solution]\n'
         f'name = "{operator}-reference"\n'
@@ -225,7 +243,7 @@ def populate_child(child_dir, *, language, operator, gpu, mode, backend, kernel_
         f'[build]\n'
         f'language = "{language}"\n'
         f'gpu = "{gpu}"\n'
-        f'entry_point = "kernel.py::run"\n'
+        f'entry_point = "{entry_point}"\n'
         f'destination_passing_style = false\n'
     )
     (child_dir / "config.toml").write_text(config_toml)
@@ -244,16 +262,34 @@ def populate_child(child_dir, *, language, operator, gpu, mode, backend, kernel_
     settings_path.write_text(json.dumps(settings, indent=2) + "\n")
 
     # Copy or extract kernel
-    kernel_dest = child_dir / "solution" / language / "kernel.py"
+    kernel_dest = child_dir / "solution" / language
     if mode == "scratch":
         definition = json.loads(definition_path.read_text())
         ref = definition.get("reference", "")
         if not ref:
             sys.exit("Error: No reference field in definition.json")
-        kernel_dest.write_text(ref)
+
+        if language in PYTHON_LIKE:
+            # Extract reference from definition.json as starting point
+            (kernel_dest / "kernel.py").write_text(ref)
+        else:
+            # Copy stub templates for compiled languages (cuda, cpp)
+            stubs_dir = PARENT_DIR / "templates" / "stubs" / language
+            if not stubs_dir.is_dir():
+                sys.exit(f"Error: No stub templates for language '{language}' at {stubs_dir}")
+            for stub_file in stubs_dir.iterdir():
+                if stub_file.is_file():
+                    shutil.copy2(stub_file, kernel_dest / stub_file.name)
+            # Also save reference implementation so the agent can study the computation logic
+            (child_dir / "docs" / "reference.py").write_text(ref)
     else:
         kp = Path(kernel_path)
-        shutil.copy2(kp, kernel_dest)
+        # Python-like languages: rename to kernel.py (matches entry_point)
+        # Compiled languages: keep original name (may have multiple files)
+        if language in PYTHON_LIKE:
+            shutil.copy2(kp, kernel_dest / "kernel.py")
+        else:
+            shutil.copy2(kp, kernel_dest / kp.name)
         # If config.toml colocated with kernel, use it
         colocated_config = kp.parent / "config.toml"
         if colocated_config.is_file():
@@ -309,7 +345,7 @@ def main():
 
     # Validate
     if args.mode == "existing":
-        validate_existing_mode(args.kernel)
+        validate_existing_mode(args.kernel, language)
 
     # Generate template context
     ctx = generate_context(definition_path, workloads_path)

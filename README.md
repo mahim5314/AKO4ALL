@@ -24,7 +24,7 @@ python setup.py \
   [--dataset /path/to/dataset] \    # default: $FIB_DATASET_PATH
   [--mode scratch|existing] \       # default: scratch
   [--backend local|modal] \         # default: local
-  [--language triton|cuda] \        # default: triton
+  [--language python|triton|cuda|cpp|tilelang] \  # default: triton
   [--gpu <name>] \                  # local: auto-detected; modal: required
   [--agent claude] \                # default: claude
   [--kernel /path/to/kernel.py] \   # required for existing mode
@@ -57,6 +57,12 @@ python setup.py --operator my_custom_op --dataset /path/to/my/traceset
 python setup.py --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
     --task ./my_task.md --hints ./my_hints.md
 
+# CUDA kernel from scratch (creates stub templates)
+python setup.py --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 --language cuda
+
+# TileLang kernel (extracts reference, like triton)
+python setup.py --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 --language tilelang
+
 # Legacy flag aliases still work (--prompt → --task, --info → --hints)
 python setup.py --operator my_op --prompt ./my_task.md --info ./my_hints.md
 ```
@@ -80,8 +86,8 @@ kernel-opt-agent-run-NNN/
 │   ├── definition.json         # Operator definition
 │   └── workloads.jsonl         # Benchmark workloads
 ├── solution/
-│   └── triton/                 # or cuda/, based on --language
-│       └── kernel.py           # The kernel to optimize
+│   └── triton/                 # or python/, cuda/, cpp/, tilelang/ based on --language
+│       └── kernel.py           # The kernel to optimize (cuda: kernel.cu + binding.py)
 ├── scripts/
 │   ├── bench_utils.py          # Shared benchmark utilities
 │   ├── bench.sh                # Benchmark script
@@ -126,6 +132,22 @@ dataset/
     └── <type>/
         └── <operator>.jsonl
 ```
+
+**Important:** Your `<operator>.json` must contain a `reference` field with **plain PyTorch code**:
+
+```json
+{
+  "name": "my_operator",
+  "reference": "import torch\n\n@torch.no_grad()\ndef run(input, weight):\n    return torch.matmul(input, weight)",
+  ...
+}
+```
+
+The `reference` serves as the mathematical specification and correctness baseline. FlashInfer-Bench will:
+1. Execute it as Python to generate reference outputs for correctness checks
+2. Profile it to measure baseline performance (when `profile_baseline=True`)
+
+❌ **Do NOT** use CUDA/C++/Triton code in the `reference` field — the framework expects Python and will fail to compile/execute it.
 
 ## Benchmark Output
 

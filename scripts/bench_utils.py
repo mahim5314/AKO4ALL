@@ -145,16 +145,11 @@ def pack_reference_as_solution() -> Solution:
     if not ref_code:
         raise ValueError("No 'reference' field in definition.json")
 
-    # Read config.toml for build settings
-    config_path = PROJECT_ROOT / "config.toml"
-    with open(config_path, "rb") as f:
-        config = tomllib.load(f)
-
-    build_config = config["build"]
+    # Reference is always Python/Triton code — pack as triton regardless of solution language
     spec = BuildSpec(
-        language=build_config["language"],
+        language="triton",
         target_hardware=["cuda"],
-        entry_point=build_config["entry_point"],
+        entry_point="kernel.py::run",
         destination_passing_style=False,  # reference is always value-returning
     )
 
@@ -392,11 +387,13 @@ def save_trajectory(
     run_dir = trajectory_dir / folder_name
     run_dir.mkdir(parents=True)
 
-    # Save kernel.py and config.toml
+    # Save all solution files and config.toml
     language = get_language()
-    kernel_path = PROJECT_ROOT / "solution" / language / "kernel.py"
-    if kernel_path.exists():
-        shutil.copy2(kernel_path, run_dir / "kernel.py")
+    solution_dir = PROJECT_ROOT / "solution" / language
+    if solution_dir.is_dir():
+        for src_file in solution_dir.iterdir():
+            if src_file.is_file():
+                shutil.copy2(src_file, run_dir / src_file.name)
     config_path = PROJECT_ROOT / "config.toml"
     if config_path.exists():
         shutil.copy2(config_path, run_dir / "config.toml")

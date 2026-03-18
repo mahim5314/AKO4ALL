@@ -24,10 +24,17 @@ try:
 except ImportError:
     import tomli as tomllib
 
+# Read config locally; on Modal remote container config.toml doesn't exist
+# (image & GPU are already determined at deploy time, so defaults are fine)
 _config_path = PROJECT_ROOT / "config.toml"
-with open(_config_path, "rb") as _f:
-    _config = tomllib.load(_f)
-_GPU_TYPE = _config["build"].get("gpu", "b200").upper()
+if _config_path.exists():
+    with open(_config_path, "rb") as _f:
+        _config = tomllib.load(_f)
+    _GPU_TYPE = _config["build"].get("gpu", "b200").upper()
+    _language = _config["build"].get("language", "triton")
+else:
+    _GPU_TYPE = "B200"
+    _language = "triton"
 
 import modal
 from flashinfer_bench import Benchmark, BenchmarkConfig, Solution, TraceSet
@@ -37,9 +44,16 @@ app = modal.App("flashinfer-bench")
 trace_volume = modal.Volume.from_name("flashinfer-trace", create_if_missing=True)
 TRACE_SET_PATH = "/data"
 
+# Base deps for all languages
+_pip_deps = ["torch", "numpy", "cupti-python"]
+if _language in ("triton", "tilelang"):
+    _pip_deps.append("triton")
+if _language in ("cuda", "cpp"):
+    _pip_deps.append("tvm-ffi-ct")
+
 image = (
     modal.Image.debian_slim(python_version="3.12")
-    .pip_install("torch", "triton", "numpy", "cupti-python")
+    .pip_install(*_pip_deps)
     .pip_install("flashinfer-bench @ https://github.com/flashinfer-ai/flashinfer-bench/archive/refs/heads/main.tar.gz")
     .pip_install("torch-c-dlpack-ext")
 )
