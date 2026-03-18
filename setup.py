@@ -293,7 +293,15 @@ def populate_child(child_dir, *, language, operator, gpu, mode, backend, kernel_
         if language in PYTHON_LIKE:
             shutil.copy2(kp, kernel_dest / "kernel.py")
         else:
+            binding = kp.parent / "binding.py"
+            if not binding.is_file():
+                sys.exit(
+                    f"Error: No binding.py found alongside {kp.resolve()}\n"
+                    f"Compiled languages (cuda/cpp) require a binding.py with the entry point.\n"
+                    f"Expected: {binding.resolve()}"
+                )
             shutil.copy2(kp, kernel_dest / kp.name)
+            shutil.copy2(binding, kernel_dest / "binding.py")
         # If config.toml colocated with kernel, use it
         colocated_config = kp.parent / "config.toml"
         if colocated_config.is_file():
