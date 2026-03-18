@@ -6,10 +6,10 @@ A tool for automated GPU kernel optimization using Code Agents (e.g. Claude Code
 
 ```bash
 # List available operators
-bash setup.sh
+python setup.py
 
 # Create an optimization environment (local, auto-detect GPU, Triton, from scratch)
-bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64
+python setup.py --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64
 
 # Enter the child environment and start your code agent
 cd ../kernel-opt-agent-run-001
@@ -19,7 +19,7 @@ claude
 ## Setup Options
 
 ```bash
-bash setup.sh \
+python setup.py \
   --operator <name> \
   [--dataset /path/to/dataset] \    # default: $FIB_DATASET_PATH
   [--mode scratch|existing] \       # default: scratch
@@ -37,33 +37,33 @@ bash setup.sh \
 
 ```bash
 # Local, auto-detect GPU, from scratch, with label
-bash setup.sh --operator gdn_decode_qk4_v8_d128_k_last --name "gdn_exp_1"
+python setup.py --operator gdn_decode_qk4_v8_d128_k_last --name "gdn_exp_1"
 
 # Local with explicit GPU
-bash setup.sh --operator gdn_decode_qk4_v8_d128_k_last --gpu h100
+python setup.py --operator gdn_decode_qk4_v8_d128_k_last --gpu h100
 
 # Local, from existing kernel
-bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
+python setup.py --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
     --mode existing --kernel /path/to/kernel.py
 
 # Modal B200, from scratch (--gpu required for modal)
-bash setup.sh --operator moe_fp8_block_scale_ds_routing_topk8_ng8_kg4_e32_h7168_i2048 \
+python setup.py --operator moe_fp8_block_scale_ds_routing_topk8_ng8_kg4_e32_h7168_i2048 \
     --backend modal --gpu b200 --name "moe_b200"
 
 # Custom dataset
-bash setup.sh --operator my_custom_op --dataset /path/to/my/traceset
+python setup.py --operator my_custom_op --dataset /path/to/my/traceset
 
 # Custom task template and hints
-bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
+python setup.py --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
     --task ./my_task.md --hints ./my_hints.md
 
-# Deprecated flags still work (--prompt → --task, --info → --hints)
-bash setup.sh --operator my_op --prompt ./my_task.md --info ./my_hints.md
+# Legacy flag aliases still work (--prompt → --task, --info → --hints)
+python setup.py --operator my_op --prompt ./my_task.md --info ./my_hints.md
 ```
 
 ## How It Works
 
-1. `setup.sh --operator <name>` discovers the operator definition and workloads from the dataset
+1. `python setup.py --operator <name>` discovers the operator definition and workloads from the dataset
 2. Creates a child environment `kernel-opt-agent-run-NNN[-label]/` with everything the agent needs
 3. You start your code agent (e.g. `claude`) in the child environment
 4. The agent reads `CLAUDE.md` and `HINTS.md`, then iteratively optimizes the kernel
@@ -100,7 +100,7 @@ kernel-opt-agent-run-NNN/
 The default task template (`templates/task.md`) defines the agent's instructions. Override it with `--task`:
 
 ```bash
-bash setup.sh --operator my_op --task ./my_task.md
+python setup.py --operator my_op --task ./my_task.md
 ```
 
 ### Custom Hints
@@ -108,7 +108,7 @@ bash setup.sh --operator my_op --task ./my_task.md
 `HINTS.md` is placed in each child environment for ad-hoc hints. Override the template with `--hints`:
 
 ```bash
-bash setup.sh --operator my_op --hints ./my_analysis.md
+python setup.py --operator my_op --hints ./my_analysis.md
 ```
 
 Or edit `HINTS.md` directly in the child environment before launching.

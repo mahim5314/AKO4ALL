@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Generate template variables from an operator's definition.json and workloads.jsonl.
 
-Outputs a shell-sourceable file with key=value pairs for use by spawn_env.sh.
+Can be imported as a module (via generate_context()) or run as a CLI to produce
+a shell-sourceable file with key=value pairs.
 """
 
 import argparse
@@ -118,20 +119,17 @@ def find_group_axis(axes: dict) -> str:
     return ""
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate template context from operator definition")
-    parser.add_argument("--definition", required=True, help="Path to definition.json")
-    parser.add_argument("--workloads", required=True, help="Path to workloads.jsonl")
-    parser.add_argument("--output", required=True, help="Output path for shell-sourceable variables file")
-    args = parser.parse_args()
+def generate_context(definition_path, workloads_path):
+    """Generate template context from operator definition and workloads.
 
-    # Load definition
-    with open(args.definition) as f:
+    Returns a dict with keys: operator, operator_description, num_workloads,
+    shape_summary, workload_summary, group_axis.
+    """
+    with open(definition_path) as f:
         definition = json.load(f)
 
-    # Load workloads
     workloads = []
-    with open(args.workloads) as f:
+    with open(workloads_path) as f:
         for line in f:
             line = line.strip()
             if line:
@@ -146,6 +144,25 @@ def main():
     workload_summary = generate_workload_summary(workloads, axes)
     group_axis = find_group_axis(axes)
 
+    return {
+        "operator": operator,
+        "operator_description": short_desc,
+        "num_workloads": str(num_workloads),
+        "shape_summary": shape_summary,
+        "workload_summary": workload_summary,
+        "group_axis": group_axis,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate template context from operator definition")
+    parser.add_argument("--definition", required=True, help="Path to definition.json")
+    parser.add_argument("--workloads", required=True, help="Path to workloads.jsonl")
+    parser.add_argument("--output", required=True, help="Output path for shell-sourceable variables file")
+    args = parser.parse_args()
+
+    ctx = generate_context(args.definition, args.workloads)
+
     # Write shell-sourceable output using single quotes to avoid
     # backtick/dollar interpretation. Escape embedded single quotes.
     def shell_quote(s: str) -> str:
@@ -153,17 +170,17 @@ def main():
 
     out = Path(args.output)
     with open(out, "w") as f:
-        f.write(f'OPERATOR={shell_quote(operator)}\n')
-        f.write(f'OPERATOR_DESCRIPTION={shell_quote(short_desc)}\n')
-        f.write(f'NUM_WORKLOADS={shell_quote(str(num_workloads))}\n')
-        f.write(f'SHAPE_SUMMARY={shell_quote(shape_summary)}\n')
-        f.write(f'WORKLOAD_SUMMARY={shell_quote(workload_summary)}\n')
-        f.write(f'GROUP_AXIS={shell_quote(group_axis)}\n')
+        f.write(f'OPERATOR={shell_quote(ctx["operator"])}\n')
+        f.write(f'OPERATOR_DESCRIPTION={shell_quote(ctx["operator_description"])}\n')
+        f.write(f'NUM_WORKLOADS={shell_quote(ctx["num_workloads"])}\n')
+        f.write(f'SHAPE_SUMMARY={shell_quote(ctx["shape_summary"])}\n')
+        f.write(f'WORKLOAD_SUMMARY={shell_quote(ctx["workload_summary"])}\n')
+        f.write(f'GROUP_AXIS={shell_quote(ctx["group_axis"])}\n')
 
-    print(f"Generated context for operator: {operator}", file=sys.stderr)
-    print(f"  Description: {short_desc}", file=sys.stderr)
-    print(f"  Workloads: {num_workloads}", file=sys.stderr)
-    print(f"  Group axis: {group_axis}", file=sys.stderr)
+    print(f"Generated context for operator: {ctx['operator']}", file=sys.stderr)
+    print(f"  Description: {ctx['operator_description']}", file=sys.stderr)
+    print(f"  Workloads: {ctx['num_workloads']}", file=sys.stderr)
+    print(f"  Group axis: {ctx['group_axis']}", file=sys.stderr)
 
 
 if __name__ == "__main__":

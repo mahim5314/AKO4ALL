@@ -1,7 +1,7 @@
 # kernel-opt-agent — Developer Guide
 
 This is the **template repository** for spawning isolated GPU kernel optimization environments.
-It is NOT an optimization environment itself — use `setup.sh` to create one.
+It is NOT an optimization environment itself — use `setup.py` to create one.
 
 ## Repository Purpose
 
@@ -16,7 +16,7 @@ Supports any flashinfer-bench compatible dataset, including user-defined operato
 kernel-opt-agent/
 ├── CLAUDE.md                          # This file (developer guide for the template repo)
 ├── README.md                          # Human-facing usage guide
-├── setup.sh                           # Creates isolated child environments
+├── setup.py                           # Creates isolated child environments
 ├── .gitignore                         # Git ignore rules (copied to children)
 ├── templates/
 │   ├── task.md                        # Main task template (assembled into CLAUDE.md at spawn)
@@ -40,14 +40,14 @@ kernel-opt-agent/
     └── pack_solution.py               # Pack kernel for evaluation
 ```
 
-## How setup.sh Works
+## How setup.py Works
 
 1. Parses `--operator`, `--mode`, `--backend`, `--language`, `--gpu`, `--agent`, `--kernel`, `--name`, `--dataset`, `--task`, `--hints`
 2. If `--operator` not provided, lists available operators from the dataset and exits
 3. Derives `LANGUAGE_NAME` from `--language` (triton→Triton, cuda→CUDA) and resolves GPU (auto-detect for local, required for modal)
 4. Reads agent config from `templates/agent/{agent}.json` for output filenames and permissions
 5. Auto-discovers operator definition from `<dataset>/definitions/*/<operator>.json`
-6. Runs `generate_context.py` to extract template variables (shapes, workload summary, etc.)
+6. Calls `generate_context()` to extract template variables (shapes, workload summary, etc.)
 7. Auto-increments run number -> creates `kernel-opt-agent-run-NNN[-label]/`
 8. Copies definition.json and workloads.jsonl from the dataset
 9. Auto-generates `config.toml` with operator name, language, GPU, and default build settings
@@ -84,7 +84,7 @@ Templates use these placeholders (replaced at spawn time):
 - **Backend execution instructions**: Edit `templates/fragments/backend-local.md` or `backend-modal.md`
 - **Agent config**: Edit `templates/agent/claude.json` (output filenames + permissions)
 - **Hints template**: Edit `templates/hints.md`
-- **Config defaults**: Edit the `config.toml` generation block in `setup.sh`
+- **Config defaults**: Edit the `config.toml` generation in `setup.py` (`populate_child` function)
 - **Benchmark scripts**: Edit `scripts/bench.sh`, `scripts/bench_modal.sh`, etc.
 
 ## Baseline Caching
