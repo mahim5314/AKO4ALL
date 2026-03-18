@@ -2,5 +2,3 @@ Write an optimized {{LANGUAGE_NAME}} kernel in `solution/{{LANGUAGE}}/` for maxi
 This is a **{{OPERATOR_DESCRIPTION}}**.
 
 **Starting point:** {{STARTING_POINT}}
-
-Replace it with a fast {{LANGUAGE_NAME}} kernel while preserving correctness.
