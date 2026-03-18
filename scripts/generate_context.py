@@ -86,10 +86,6 @@ def generate_workload_summary(workloads: list, axes: dict) -> str:
 
     # Also include constant axis values from workloads
     const_parts = []
-    for axis_name, info in axes.items():
-        if info.get("type") == "const":
-            continue
-        # Already handled above
     # Check for axes that are var but constant across workloads
     first_workload_axes = workloads[0].get("workload", {}).get("axes", {})
     for axis_name in first_workload_axes:

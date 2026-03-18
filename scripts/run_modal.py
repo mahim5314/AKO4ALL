@@ -56,6 +56,7 @@ image = (
     .pip_install(*_pip_deps)
     .pip_install("flashinfer-bench @ https://github.com/flashinfer-ai/flashinfer-bench/archive/refs/heads/main.tar.gz")
     .pip_install("torch-c-dlpack-ext")
+    .copy_local_file(str(PROJECT_ROOT / "scripts" / "bench_utils.py"), "/root/bench_utils.py")
 )
 
 
@@ -65,7 +66,7 @@ def run_benchmark(solution: Solution, config: BenchmarkConfig = None) -> dict:
     from flashinfer_bench.bench.benchmark import Benchmark as _Benchmark
 
     if config is None:
-        config = BenchmarkConfig(warmup_runs=3, iterations=20, num_trials=5)
+        config = BenchmarkConfig(warmup_runs=3, iterations=100, num_trials=5)
 
     trace_set = TraceSet.from_path(TRACE_SET_PATH)
 
@@ -89,26 +90,12 @@ def run_benchmark(solution: Solution, config: BenchmarkConfig = None) -> dict:
     benchmark = _Benchmark(bench_trace_set, config)
     result_trace_set = benchmark.run_all(dump_traces=True)
 
-    # Extract results inline (can't import bench_utils on remote)
-    traces = result_trace_set.traces.get(definition.name, [])
-    results = {definition.name: {}}
+    # Import bench_utils from the file copied into the image
+    import sys as _sys
+    _sys.path.insert(0, "/root")
+    from bench_utils import extract_results
 
-    for trace in traces:
-        if trace.evaluation:
-            entry = {
-                "status": trace.evaluation.status.value,
-                "solution": trace.solution,
-            }
-            if trace.evaluation.performance:
-                entry["latency_ms"] = trace.evaluation.performance.latency_ms
-                entry["reference_latency_ms"] = trace.evaluation.performance.reference_latency_ms
-                entry["speedup_factor"] = trace.evaluation.performance.speedup_factor
-            if trace.evaluation.correctness:
-                entry["max_abs_error"] = trace.evaluation.correctness.max_absolute_error
-                entry["max_rel_error"] = trace.evaluation.correctness.max_relative_error
-            results[definition.name][trace.workload.uuid] = entry
-
-    return results
+    return extract_results(result_trace_set, definition.name)
 
 
 @app.local_entrypoint()
