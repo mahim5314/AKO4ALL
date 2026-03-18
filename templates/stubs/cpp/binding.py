@@ -5,7 +5,7 @@ This file provides Python bindings for your C++ kernel using TVM FFI.
 The entry point function name should match the `entry_point` setting in config.toml.
 
 Getting started:
-  1. Read docs/reference.py to understand the computation semantics
+  1. Read the `reference` field in docs/definition.json to understand the computation semantics
   2. Read docs/definition.json for input/output shapes and dtypes
   3. Implement the kernel logic in kernel.cpp
   4. Update this file to call your C++ implementation
@@ -27,6 +27,6 @@ def kernel():
     2. Call your C++ implementation
     3. Return outputs as specified in docs/definition.json
 
-    See docs/reference.py for the PyTorch reference implementation.
+    See the `reference` field in docs/definition.json for the PyTorch reference implementation.
     """
     pass

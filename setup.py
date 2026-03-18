@@ -284,8 +284,6 @@ def populate_child(child_dir, *, language, operator, gpu, mode, backend, kernel_
             for stub_file in stubs_dir.iterdir():
                 if stub_file.is_file():
                     shutil.copy2(stub_file, kernel_dest / stub_file.name)
-            # Also save reference implementation so the agent can study the computation logic
-            (child_dir / "docs" / "reference.py").write_text(ref)
     else:
         kp = Path(kernel_path)
         # Python-like languages: rename to kernel.py (matches entry_point)
@@ -382,7 +380,7 @@ def main():
     if language in PYTHON_LIKE:
         starting_point = f"The reference implementation is in `solution/{language}/kernel.py`"
     else:
-        starting_point = f"Stub templates are in `solution/{language}/`. Study `docs/reference.py` for the PyTorch reference implementation."
+        starting_point = f"Stub templates are in `solution/{language}/`. Study the `reference` field in `docs/definition.json` for the PyTorch reference implementation."
 
     # Pre-pass: substitute inline placeholders in objective fragment
     inline_vars = {

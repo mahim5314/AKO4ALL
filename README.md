@@ -94,7 +94,6 @@ kernel-opt-agent-run-NNN/
 ├── docs/
 │   ├── definition.json         # Operator definition
 │   ├── workloads.jsonl         # Benchmark workloads
-│   └── reference.py            # PyTorch reference (scratch mode, compiled languages only)
 ├── solution/
 │   ├── triton/kernel.py        # Triton/Python/TileLang (entry: kernel.py::run)
 │   └── cuda/                   # CUDA (entry: binding.py::kernel)
@@ -127,7 +126,7 @@ The entry point depends on the kernel language:
   - Agent edits C++ source files and `binding.py` (Python bindings using TVM FFI)
   - Entry function is `kernel(...)` in binding.py
 
-**Note for compiled languages (CUDA, C++):** In scratch mode, the PyTorch reference implementation from `definition.json` is saved to `docs/reference.py`. Use this to understand the computation semantics before implementing the compiled kernel.
+**Note for compiled languages (CUDA, C++):** The PyTorch reference implementation is in the `reference` field of `docs/definition.json`. Study it to understand the computation semantics before implementing the compiled kernel.
 
 ## Customization
 

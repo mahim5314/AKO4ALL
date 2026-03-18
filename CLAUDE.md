@@ -58,7 +58,6 @@ The system distinguishes two language categories that behave differently:
 - **Entry point**: `binding.py::kernel` (Python bindings using TVM FFI)
 - **Scratch mode**:
   - Stub templates copied to `solution/{language}/` (kernel.cu + binding.py for CUDA)
-  - Reference saved to `docs/reference.py` for agent to study computation logic
 - **Existing mode**: User kernel keeps original filename (may have multiple files)
 - **Validation**: No `def run(` check (bindings are in Python but kernel logic is compiled)
 
@@ -87,7 +86,6 @@ PYTHON_LIKE = {"python", "triton", "tilelang"}
     - **Scratch mode, Python-like languages**: Extracts reference from definition.json → `solution/{language}/kernel.py`
     - **Scratch mode, compiled languages**:
       - Copies stub templates from `templates/stubs/{language}/` → `solution/{language}/`
-      - Saves reference to `docs/reference.py` (for agent to study computation logic)
     - **Existing mode, Python-like languages**: Copies user kernel, renames to `kernel.py`
     - **Existing mode, compiled languages**: Copies user kernel, preserves original filename
 13. Copies hints file (from `--hints` or `templates/hints.md`) as `HINTS.md`
