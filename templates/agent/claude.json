@@ -2,8 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(*)", "Edit(*)", "Read(*)", "Write(*)",
-      "Glob(*)", "Grep(*)", "Agent(*)", "Skill(*)",
-      "WebFetch(*)", "WebSearch(*)", "NotebookEdit(*)"
+      "Glob(*)", "Grep(*)", "Agent(*)"
     ]
   }
 }
