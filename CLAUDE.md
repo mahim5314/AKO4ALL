@@ -127,6 +127,15 @@ kernel-opt-agent-run-xxx/
 
 3. **Copy bench script + local deps to `bench/`**: Copy the bench script and any local files it imports into `bench/`. If the bench script is in a directory with helpers, copy the directory contents.
 
+   **Light adjustments allowed**: When copying the bench script, you may make small,
+   targeted modifications to improve Session 2's experience. Mark each change with a
+   comment (e.g., `# [kernel-opt-agent] added verbose output`). Acceptable adjustments:
+   - Make tolerance values explicit (pass `atol`/`rtol` to config instead of relying on defaults)
+   - Add workload parameter printing (e.g., print `num_tokens`, `num_pages` alongside results)
+   - Add failure detail printing (error message or failure category when status != PASSED)
+
+   Do NOT change benchmark logic, timing method, correctness checking, or workload definitions.
+
 4. **Adjust bench command for new paths**: Figure out the command to run the bench script from the child root, with paths adjusted:
    - Kernel path becomes `solution/<filename>`
    - Bench script path becomes `bench/<filename>`
