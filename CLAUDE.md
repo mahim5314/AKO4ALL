@@ -1,163 +1,122 @@
-# kernel-opt-agent — Developer Guide
+# kernel-opt-agent — Session 1 Action Guide
 
-This is the **template repository** for spawning isolated GPU kernel optimization environments.
-It is NOT an optimization environment itself — use `setup.py` to create one.
+You are operating in the **template repository**. Your job is to gather information from the user, analyze their kernel and benchmark script, and create an isolated child environment for optimization.
 
-## Repository Purpose
+## Conversation Protocol
 
-Provides scaffolding to create child environments where a Code Agent (e.g. Claude Code)
-autonomously optimizes a GPU kernel (Python, Triton, CUDA, C++, or TileLang), using the flashinfer-bench SDK for evaluation.
+### 1. Gather inputs
 
-Supports any flashinfer-bench compatible dataset, including user-defined operators.
+Ask the user for:
+- **(a) Kernel path** — file or directory containing the kernel to optimize
+- **(b) Bench script path** — the script that benchmarks the kernel
+- **(c) Hints** (optional) — a file with optimization hints, or verbal hints to include
 
-## Directory Structure
+If the user provides all three upfront, skip asking.
 
+### 2. Analyze the kernel
+
+Read the kernel file(s). Identify:
+- **Language**: Python, Triton, CUDA, C++, TileLang, or other
+- **Entry point**: the main function name and file
+- **Inputs/outputs**: tensor shapes, dtypes, arguments
+- **Functionality**: what the kernel computes (one sentence)
+
+### 3. Analyze the bench script
+
+Read the bench script. Identify:
+- **Invocation**: how to run it (e.g., `python bench.py --kernel kernel.py`)
+- **How it references the kernel**: import path, command-line arg, hardcoded path, etc.
+- **Output format**: what it prints (latency, speedup, pass/fail, etc.)
+- **Environment needs**: conda env, pip deps, special setup
+
+### 4. Confirm with user
+
+Present findings. Ask the user to confirm or correct:
+- Kernel summary (language, entry point, functionality)
+- Bench invocation and how paths will be adjusted in the child env
+- Anything that couldn't be inferred (optimization goal, GPU, environment name, etc.)
+- Optional: a short label for the run directory
+
+### 5. Create child environment
+
+Follow the procedure in [Child Environment Creation](#child-environment-creation) below.
+
+### 6. Done
+
+Tell the user:
 ```
-kernel-opt-agent/
-├── CLAUDE.md                          # This file (developer guide for the template repo)
-├── README.md                          # Human-facing usage guide
-├── setup.py                           # Creates isolated child environments
-├── .gitignore                         # Git ignore rules (copied to children)
-├── templates/
-│   ├── task.md                        # Main task template (assembled into CLAUDE.md at spawn)
-│   ├── hints.md                       # Default HINTS.md template (copied to children)
-│   ├── fragments/
-│   │   ├── objective-scratch.md       # Objective for scratch mode
-│   │   ├── objective-existing.md      # Objective for existing mode
-│   │   ├── backend-local.md           # Local execution instructions
-│   │   └── backend-modal.md           # Modal execution instructions
-│   ├── stubs/
-│   │   └── cuda/                      # Stub templates for CUDA scratch mode
-│   │       ├── kernel.cu
-│   │       └── binding.py
-│   └── agent/
-│       └── claude.json                # Claude Code agent config (output filenames + permissions)
-└── scripts/
-    ├── generate_context.py            # Extracts operator metadata for template rendering
-    ├── bench_utils.py                 # Shared benchmark utilities (baseline caching, scoring)
-    ├── bench.sh                       # Local benchmark script
-    ├── bench_modal.sh                 # Modal benchmark script
-    ├── run_local.py                   # Local A100 benchmark runner
-    ├── run_modal.py                   # Modal B200 benchmark runner
-    └── pack_solution.py               # Pack kernel for evaluation
-```
-
-## Language Categories
-
-The system distinguishes two language categories that behave differently:
-
-### Python-like Languages (python, triton, tilelang)
-- **Entry point**: `kernel.py::run`
-- **Scratch mode**: Reference from definition.json is extracted directly to `solution/{language}/kernel.py`
-- **Existing mode**: User kernel is renamed to `kernel.py` (matches entry point)
-- **Validation**: In existing mode, checks for `def run(` in the kernel file
-
-### Compiled Languages (cuda, cpp)
-- **Entry point**: `binding.py::kernel` (Python bindings using TVM FFI)
-- **Scratch mode**:
-  - Stub templates copied to `solution/{language}/` (kernel.cu + binding.py for CUDA)
-- **Existing mode**: User kernel keeps original filename (may have multiple files)
-- **Validation**: No `def run(` check (bindings are in Python but kernel logic is compiled)
-
-This distinction is defined in `setup.py` as:
-```python
-PYTHON_LIKE = {"python", "triton", "tilelang"}
+cd <child-dir> && claude
 ```
 
-## How setup.py Works
+## Child Environment Creation
 
-1. Parses `--operator`, `--mode`, `--backend`, `--language`, `--gpu`, `--agent`, `--kernel`, `--name`, `--dataset`, `--task`, `--hints`
-2. If `--operator` not provided, lists available operators from the dataset and exits
-3. Derives `LANGUAGE_NAME` from `--language` (python→Python, triton→Triton, cuda→CUDA, cpp→C++, tilelang→TileLang) and resolves GPU (auto-detect for local, required for modal)
-4. Reads agent config from `templates/agent/{agent}.json`:
-   - `task_filename`: Name of the generated task file (e.g., "CLAUDE.md")
-   - `hints_filename`: Name of the hints file (e.g., "HINTS.md")
-   - `permissions`: Claude Code permissions (Bash, Edit, Read, Write, etc.)
-5. Auto-discovers operator definition from `<dataset>/definitions/*/<operator>.json`
-6. Calls `generate_context()` to extract template variables (shapes, workload summary, etc.)
-7. Creates `kernel-opt-agent-run-{label}/` (with `--name`) or `kernel-opt-agent-run-{YYYYMMDD_HHMMSS}/`
-8. Copies definition.json and workloads.jsonl from the dataset
-9. Auto-generates `config.toml` with operator name, language, GPU, and default build settings
-10. Copies backend-specific bench script and runner (`run_local.py` or `run_modal.py`)
-11. Generates `.claude/settings.local.json` from agent config permissions
-12. **Extracts or prepares kernel code**:
-    - **Scratch mode, Python-like languages**: Extracts reference from definition.json → `solution/{language}/kernel.py`
-    - **Scratch mode, compiled languages**:
-      - Copies stub templates from `templates/stubs/{language}/` → `solution/{language}/`
-    - **Existing mode, Python-like languages**: Copies user kernel, renames to `kernel.py`
-    - **Existing mode, compiled languages**: Copies user kernel, preserves original filename
-13. Copies hints file (from `--hints` or `templates/hints.md`) as `HINTS.md`
-14. Assembles task file from `task.md` + fragment placeholders -> output filename from agent config
-15. Initializes a git repo in the child directory
+### Naming
 
-## Template Placeholders
+Create the child directory as a **sibling** of this repo (i.e., `../<name>`):
+- With label: `kernel-opt-agent-run-{label}`
+- Without: `kernel-opt-agent-run-{YYYYMMDD_HHMMSS}`
 
-Templates use these placeholders (replaced at spawn time):
+### Directory structure
 
-| Placeholder | Source | Example |
-|-------------|--------|---------|
-| `{{LANGUAGE}}` | `--language` flag (default: triton) | `triton`, `cuda`, `cpp` |
-| `{{LANGUAGE_NAME}}` | derived from `--language` | `Triton`, `CUDA`, `C++` |
-| `{{GPU_NAME}}` | `uppercase(--gpu)` | `A100`, `H100` |
-| `{{BACKEND}}` | `fragments/backend-{backend}.md` content | (execution instructions) |
-| `{{OBJECTIVE}}` | `fragments/objective-{mode}.md` content | (multi-line) |
-| `{{OPERATOR}}` | definition name | `dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64` |
-| `{{OPERATOR_DESCRIPTION}}` | first sentence of definition description | `Batched Native Sparse Attention (DSA)...` |
-| `{{NUM_WORKLOADS}}` | count of workloads | `23` |
-| `{{SHAPE_SUMMARY}}` | auto-formatted input/output shapes | `Key shapes: ...` |
-| `{{WORKLOAD_SUMMARY}}` | distribution of variable axes | `Workloads: num_tokens in {1(x1),...}` |
-
-## How to Modify Templates
-
-- **Task template**: Edit `templates/task.md` — the main template assembled into the child's task file
-- **Objective fragments**: Edit `templates/fragments/objective-scratch.md` or `objective-existing.md`
-- **Backend execution instructions**: Edit `templates/fragments/backend-local.md` or `backend-modal.md`
-- **Agent config**: Edit `templates/agent/claude.json` (output filenames + permissions)
-- **Hints template**: Edit `templates/hints.md`
-- **Config defaults**: Edit the `config.toml` generation in `setup.py` (`populate_child` function)
-- **Benchmark scripts**: Edit `scripts/bench.sh`, `scripts/bench_modal.sh`, etc.
-
-## Baseline Caching
-
-The benchmark system caches reference implementation performance on the first run:
-- First `bench.sh` run profiles the reference (20 iterations) and saves metrics to `baseline.json`
-- Subsequent runs skip reference profiling and use cached values with 100 iterations for the solution
-- This provides stable reference metrics and more accurate solution timing
-- Use `--force-baseline` to re-profile: `bash scripts/bench.sh --force-baseline`
-- `baseline.json` auto-invalidates when workloads change
-
-## Key Constraints
-
-- Agents only edit files in `solution/{language}/` (and optionally `config.toml`)
-- `config.toml`: `destination_passing_style = false` by default
-- Operator data (definition.json, workloads.jsonl, reference kernel) comes from the dataset at spawn time, not from static files in this repo
-- Benchmark scripts hardcode conda environment name `fi-bench` (the `conda run -n fi-bench` line in `scripts/bench.sh` and `scripts/bench_modal.sh`)
-- Local benchmarking uses CUPTI profiling via `cupti-python` (requires CUDA 13.0+ driver; falls back to CUDA events on older drivers)
-
-## Entry Point Conventions
-
-Entry points vary by language (configured in config.toml `entry_point` field):
-
-- **python, triton, tilelang**: `"kernel.py::run"` — single Python file with `run()` function
-- **cuda**: `"binding.py::kernel"` — Python bindings file with `kernel()` function calling CUDA kernel
-- **cpp**: `"binding.py::kernel"` — Python bindings file with `kernel()` function calling C++ code
-
-For compiled languages, the `binding.py` file uses TVM FFI (`from tvm.ffi import register_func`) to expose compiled code to Python.
-
-## ⚠️ Custom Dataset Requirements
-
-**CRITICAL**: If you create a custom dataset, the `definition.json` **must** contain a `reference` field with **plain PyTorch code**:
-
-```json
-{
-  "name": "my_operator",
-  "reference": "import torch\n\n@torch.no_grad()\ndef run(...):\n    # Plain PyTorch implementation\n    return ...",
-  ...
-}
+```
+kernel-opt-agent-run-xxx/
+├── CLAUDE.md                   # Generated task spec (self-contained)
+├── HINTS.md                    # Optimization hints
+├── .gitignore
+├── solution/                   # Kernel files (editable by agent)
+├── bench/                      # Bench script + deps (read-only)
+├── scripts/
+│   └── bench.sh                # Generated wrapper
+└── .claude/
+    └── settings.local.json     # Agent permissions
 ```
 
-The `reference` is the mathematical specification — flashinfer-bench executes it as Python (`language=PYTHON`, `entry_point=main.py::run`) for:
-- Generating reference outputs (correctness baseline)
-- Profiling reference latency (performance baseline)
+### Steps
 
-**Do NOT use CUDA/C++/Triton code in `reference`** — the framework will fail. Those languages belong in the `Solution` being optimized, not the `Definition.reference`.
+1. **Create directory tree**: `mkdir -p <child>/{solution,bench,scripts,.claude}`
+
+2. **Copy kernel files to `solution/`**: Copy the kernel file(s) into `solution/`. Preserve filenames. If it's a directory, copy contents.
+
+3. **Copy bench script + local deps to `bench/`**: Copy the bench script and any local files it imports into `bench/`. If the bench script is in a directory with helpers, copy the directory contents.
+
+4. **Adjust bench command for new paths**: Figure out the command to run the bench script from the child root, with paths adjusted:
+   - Kernel path becomes `solution/<filename>`
+   - Bench script path becomes `bench/<filename>`
+   - Example: if original was `python bench.py --kernel my_kernel.py`, becomes `python bench/bench.py --kernel solution/my_kernel.py`
+   - Pipe through tee to capture output: `<command> 2>&1 | tee _bench_output.txt`
+
+5. **Generate `scripts/bench.sh`**: Read `templates/bench-wrapper.sh` from this repo, replace `{{BENCH_COMMAND}}` with the adjusted command from step 4, write to `<child>/scripts/bench.sh`, make executable.
+
+6. **Write `.claude/settings.local.json`**: Read `templates/agent/claude.json` from this repo, extract the `permissions` object, write as `<child>/.claude/settings.local.json`.
+
+7. **Copy `.gitignore`**: Copy this repo's `.gitignore` to `<child>/.gitignore`.
+
+8. **Write `HINTS.md`**: If user provided a hints file, copy it. If user gave verbal hints, write them. Otherwise copy `templates/hints.md` from this repo.
+
+9. **Write `CLAUDE.md`**: Generate the child's CLAUDE.md following the [required sections](#child-claudemd-required-sections) below. Use `templates/task.md` as a reference example for format and detail level.
+
+10. **Initialize git**: `cd <child> && git init && git add -A && git commit -m "Initial environment"`
+
+### Child CLAUDE.md Required Sections
+
+The generated CLAUDE.md must be **self-contained** — Session 2 will not read this template repo. Include these sections:
+
+1. **Role** — one line: "You are a GPU kernel optimization expert. Your task is to optimize the kernel in `solution/` for maximum performance."
+
+2. **Hints** — "Read `HINTS.md` before starting for user-provided hints and constraints."
+
+3. **Kernel** — language, entry point, input/output shapes and types, what it computes. Be specific — this is what the agent needs to understand the code.
+
+4. **Benchmark** — how to run (`bash scripts/bench.sh [label]`), output format, what PASSED/FAILED means, what the primary metric is.
+
+5. **Editable files** — "Only modify files in `solution/`. Do NOT modify files in `bench/` or `scripts/`."
+
+6. **Workflow** — baseline -> analyze -> modify -> bench -> iterate -> rollback on regression -> stop when done.
+
+## Constraints
+
+- Never modify files outside the child directory.
+- The child CLAUDE.md must be self-contained (Session 2 does not read this template repo).
+- Always init git in the child.
+- Adjust all paths in the bench command so they work from the child root directory.
+- If the bench script has complex dependencies (conda env, pip packages, etc.), document the environment setup in the child CLAUDE.md's Benchmark section.
