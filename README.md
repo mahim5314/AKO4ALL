@@ -8,7 +8,7 @@ Only a kernel is required — everything else is optional.
 
 - **Kernel** (required) — The kernel to optimize. Can be a single file or a directory. Supports Triton, CUDA, C++, TileLang, Python, or any language that can be benchmarked.
 - **Reference implementation** (optional) — Used as the correctness golden. If absent, the original kernel is used.
-- **Benchmark script** (optional) — Your own benchmark script. If not provided, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch). You can add a `GUIDE.md` to describe its usage, or let the agent figure it out by reading the script.
+- **Benchmark script** (optional) — Your own benchmark script, with an optional `GUIDE.md` describing its usage. If omitted, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch).
 - **Hints** (optional) — Optimization hints, constraints, and agent behavior controls (e.g., whether to allow web search).
 
 ## Requirements
@@ -49,13 +49,15 @@ The agent reads your files, copies the kernel to `solution/`, and enters a bench
 
 ## Hints
 
-Edit `HINTS.md` to guide the optimization. By default, web search is disabled — remove that line to enable it.
+Edit `HINTS.md` to guide the optimization. Examples:
 
 ```markdown
-- If 3 consecutive rounds show no improvement, use WebSearch for optimization ideas
 - Focus on the large-N workloads (N > 4096), they dominate runtime
 - Do not use inline PTX — keep it portable
+- If 3 consecutive rounds show no improvement, use WebSearch for optimization ideas
 ```
+
+Web search is disabled by default in `HINTS.md`. Remove that line to allow the agent to search for optimization ideas online.
 
 ## Permissions
 
