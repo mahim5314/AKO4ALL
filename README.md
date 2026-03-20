@@ -10,7 +10,50 @@ Supports Triton, CUDA, C++, TileLang, Python — any kernel that can be benchmar
 - Git
 - A working benchmark environment (local GPU, [Modal](https://modal.com/), remote cluster, etc.) — make sure your bench script runs before starting
 
-## Quick Start
+## Quick Start (no bench script)
+
+If you just want to optimize a kernel without writing a benchmark, leave `bench/` empty and AutoKernelForge will use its built-in KernelBench evaluator (`bench/kernelbench/bench.py`) for correctness checking and performance timing automatically — no external dependencies beyond PyTorch.
+
+### Scenario A: KernelBench-format kernel
+
+Your input already has `class Model(nn.Module)` + `get_inputs()` + `get_init_inputs()`:
+
+```
+AutoKernelForge/
+├── input/
+│   └── matmul.py                # class Model + get_inputs + get_init_inputs
+├── bench/                       # Empty — uses KernelBench eval
+└── HINTS.md
+```
+
+```bash
+cd AutoKernelForge && claude
+```
+
+Claude detects the empty `bench/`, validates the KernelBench format, copies the kernel to `solution/`, and starts optimizing. The bench command becomes:
+```
+python bench/kernelbench/bench.py --ref input/matmul.py --solution solution/matmul.py --verbose
+```
+
+### Scenario B: Raw kernel (CUDA, Triton, etc.)
+
+Your input is a raw kernel file (not KernelBench format):
+
+```
+AutoKernelForge/
+├── input/
+│   └── kernel.cu               # Raw CUDA kernel
+├── bench/                       # Empty — uses KernelBench eval
+└── HINTS.md
+```
+
+```bash
+cd AutoKernelForge && claude
+```
+
+Claude detects the raw kernel, wraps it into KernelBench format (`input/kernel_kb.py` with `class Model` calling the CUDA code via `load_inline`, plus `get_inputs()` and `get_init_inputs()`), then proceeds as in Scenario A.
+
+## Quick Start (with bench script)
 
 1. Place your files:
 
@@ -58,7 +101,10 @@ After setup, the full repo looks like:
 AutoKernelForge/
 ├── CLAUDE.md
 ├── input/                      # User-provided originals (read-only)
-├── bench/                      # Benchmark script + deps (read-only)
+├── bench/                      # Benchmark script + deps (optional, read-only)
+│   └── kernelbench/            # Built-in KernelBench evaluator (used when bench/ has no custom script)
+│       ├── bench.py            # Self-contained eval script
+│       └── GUIDE.md           # Output format, CLI args, tolerances
 ├── HINTS.md                    # Optimization hints
 ├── bench.sh                    # Generated benchmark wrapper (read-only)
 ├── solution/                   # Kernel files — only these are edited
@@ -94,6 +140,9 @@ Disabled by default. To enable when the agent hits a plateau, include in your hi
 ```
 
 ## FAQ
+
+**What if I don't have a bench script?**
+Leave `bench/` empty. AutoKernelForge will use its built-in evaluator (`bench/kernelbench/bench.py`) for correctness checking and performance timing. Your kernel just needs to be in KernelBench format (`class Model(nn.Module)` + `get_inputs()` + `get_init_inputs()`) — or Claude will wrap a raw kernel into that format for you.
 
 **What if the benchmark fails after an optimization?**
 The agent reads the failure, attempts fixes, and reverts if needed.
