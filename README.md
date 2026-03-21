@@ -6,11 +6,13 @@ Automated GPU kernel optimization powered by coding agents. Provide any kernel �
 
 Only a kernel is required — everything else is optional.
 
-- **Kernel** (required) — The kernel to optimize. Can be a single file or a directory. Supports Triton, CUDA, C++, TileLang, Python, or any language that can be benchmarked. Must include at least one set of input shapes for testing (in the kernel itself, reference, bench script, or hints) — the agent will ask if none can be determined.
+- **Kernel** (required) — The kernel to optimize. Can be a single file or a directory. Supports Triton, CUDA, C++, TileLang, Python, or any language that can be benchmarked.
 - **Reference implementation** (optional) — Used as the correctness golden. If absent, the original kernel is used.
-- **Benchmark script** (optional) — Your own benchmark script, with an optional `GUIDE.md` describing its usage. If omitted, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch).
-- **Context** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization. Place in `context/`.
+- **Benchmark script** (optional) — Your own benchmark script. A `GUIDE.md` can be included to describe its usage. If no benchmark script is provided, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch).
+- **Context** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization.
 - **Hints** (optional) — Directives for the agent: optimization constraints, focus areas, and behavior controls (e.g., whether to allow web search).
+
+> **Notes:** At least one set of input shapes for testing must be determinable (from the kernel itself, reference, bench script, or hints) — the agent will ask if none can be found.
 
 ## Requirements
 
@@ -28,14 +30,12 @@ Only a kernel is required — everything else is optional.
 AKO4ALL/
 ├── input/                       # Place your kernel files here
 │   ├── kernel.py                # Example — can be any file(s) or subdirectory
-│   └── reference.py             # Example — optional
-├── context/                     # Place reference materials here (optional)
-│   ├── algorithm.md             # Example — algorithm description
-│   └── paper.pdf                # Example — related paper
-├── bench/                       # Place your benchmark script here
+│   └── reference.py             # Optional
+├── bench/                       # Place your benchmark script here (optional)
 │   ├── bench.sh                 # Example — can be any file(s) or subdirectory
 │   ├── GUIDE.md                 # Optional
 │   └── kernelbench/             # Built-in evaluator — delete if using your own
+├── context/                     # Place reference materials here (optional)
 ├── HINTS.md
 ```
 
@@ -62,7 +62,7 @@ Edit `HINTS.md` to guide the optimization. Examples:
 - If 3 consecutive rounds show no improvement, use WebSearch for optimization ideas
 ```
 
-> **Tips:**
+> **Notes:**
 > - **Language switching** — The agent may rewrite your kernel in a different language (e.g., Triton → CUDA) to chase performance. Add a constraint in `HINTS.md` if you want to keep the original language.
 > - **Web search** — Web search is enabled by default. The agent will search for optimization ideas online after consecutive rounds without improvement. Edit `HINTS.md` to disable or adjust this behavior.
 
