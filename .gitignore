@@ -2,8 +2,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 trajectory/
-solution/
-bench.sh
 scripts/
 _bench_output.txt
 .claude/

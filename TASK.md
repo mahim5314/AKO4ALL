@@ -27,6 +27,22 @@ Then:
 - Use `ncu` to profile kernels and identify bottlenecks — do not optimize blindly.
 - Leverage all available information: `context/`, `HINTS.md`, prior attempts, web search, etc.
 
+### Iteration Tracking
+
+After each optimization iteration, record the attempt:
+
+1. **Update `iterations.md`** — append an entry for this iteration (see template in that file).
+2. **Git commit** with the following message format:
+   ```
+   [iter N] Short description of optimization direction
+
+   Direction: What was tried (e.g. "Triton autotune + 128x256 tiles")
+   Result: Performance data (e.g. "0.633ms, 0.92x baseline")
+   Status: improved | no-change | regression
+   Analysis: One line on why it worked/failed and what to try next
+   ```
+3. **Git tag** — `git tag iter-N` for easy navigation between iterations.
+
 ## Directory Layout
 
 - `input/` — user-provided original files, read-only. Must contain the kernel to optimize. May contain `reference.py` (or similar) as the correctness golden; if absent, the original kernel in `input/` serves as the golden reference.
