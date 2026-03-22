@@ -62,9 +62,9 @@ cd AKO4ALL && claude
 
 [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) contains 235 real-world DL kernel problems from NVIDIA. This example shows how to optimize any of them with AKO4ALL — no file copying needed.
 
-1. Clone both repositories and set up their environments.
+1. Clone both repositories. Set up the SOL-ExecBench environment and install `ncu` if needed.
 
-2. Start the agent in the AKO4ALL directory:
+2. Activate the SOL-ExecBench environment, then start the agent in the AKO4ALL directory:
 
 ```bash
 cd AKO4ALL && claude
