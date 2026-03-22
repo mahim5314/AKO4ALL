@@ -4,5 +4,4 @@ __pycache__/
 trajectory/
 scripts/
 _bench_output.txt
-ITERATIONS.md
 .claude/
