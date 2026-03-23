@@ -2,6 +2,12 @@
 
 Automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Works with any coding agent; examples below use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
+<p align="center">
+  <img src="assets/sol_001_optimization.png" alt="AKO4ALL optimization trajectory on SOL-ExecBench L1-001" width="100%">
+</p>
+
+*Optimization trajectory on [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) L1-001 (Attention Softmax+Dropout+Value Matmul Backward). 41 iterations, 8.93× average speedup over the PyTorch reference. Developed on A100-SXM4-80GB, ~2 hours total.*
+
 ## What You Provide
 
 Only a kernel is required — everything else is optional.
