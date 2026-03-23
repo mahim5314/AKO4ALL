@@ -105,6 +105,11 @@ For more granular control, create `.claude/settings.local.json`:
 
 For other agents, consult their documentation on permission / auto-approve settings.
 
+## Tips
+
+- **Agent laziness** — Agents may default to conservative strategies: staying in PyTorch, only tuning configurations, or skipping profiling. If progress stalls, intervene with specific guidance.
+- **Model matters** — Model capability strongly influences optimization quality. We recommend [Claude Opus 4.6](https://docs.anthropic.com/en/docs/about-claude/models).
+
 ## Example: SOL-ExecBench
 
 [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) contains 235 real-world DL kernel problems from NVIDIA. This example shows how to optimize any of them with AKO4ALL — no file copying needed.
