@@ -133,3 +133,10 @@ Yes. As long as your bench script runs from the command line and prints results 
 
 **Can I intervene during optimization?**
 Yes. You can interrupt the agent at any time to give guidance, discuss strategy, or manually edit files in `solution/`. Then tell the agent to continue.
+
+## Acknowledgments
+
+We would like to thank the following open-source projects that inspired and supported the development of AKO:
+
+- [KernelBench](https://github.com/ScalingIntelligence/KernelBench) — for providing the benchmark and evaluation format used by AKO4ALL's built-in evaluator.
+- [autoresearch](https://github.com/karpathy/autoresearch) and [autokernel](https://github.com/RightNow-AI/autokernel) — AKO's design was inspired by their work on autonomous optimization loops.
