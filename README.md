@@ -49,7 +49,7 @@ AKO4ALL/
 ├── HINTS.md
 ```
 
-2. Run:
+2. Run (from the environment where dependencies are installed):
 
 ```bash
 cd AKO4ALL && claude
